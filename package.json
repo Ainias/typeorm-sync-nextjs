@@ -1,5 +1,5 @@
 {
-  "name": "typeorm-client-sync",
+  "name": "typeorm-sync-nextjs",
   "version": "0.0.1",
   "description": "synchronization between a server and client typeorm instance",
   "main": "dist/index.js",
