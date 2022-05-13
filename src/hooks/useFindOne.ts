@@ -1,4 +1,11 @@
-import { SyncModel, SyncOptions, Database, SingleInitialResult, SingleInitialResultJSON } from 'typeorm-sync';
+import {
+    SyncModel,
+    SyncOptions,
+    Database,
+    SingleInitialResult,
+    SingleInitialResultJSON,
+    waitForSyncRepository,
+} from 'typeorm-sync';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FindOneOptions, FindOptionsWhere } from 'typeorm';
 import { LoadingState } from './LoadingState';
@@ -61,13 +68,14 @@ export function useFindOne<ModelType extends typeof SyncModel>(
     const save = useCallback(
         async (newEntity: InstanceType<ModelType>, extraData?: JSONValue) => {
             setIsServerLoading(true);
-            await repository.saveAndSync(newEntity, { extraData, reload: false });
+            const rep = await waitForSyncRepository(model);
+            await rep.saveAndSync(newEntity, { extraData, reload: false });
             unstable_batchedUpdates(() => {
                 setIsServerLoading(false);
                 setEntity(newEntity);
             });
         },
-        [repository]
+        [model]
     );
 
     useEffect(() => {

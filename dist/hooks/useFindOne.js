@@ -39,12 +39,13 @@ function useFindOne(model, optionsOrId, jsonInitialValue, dependencies = []) {
     }, [...dependencies, typeof optionsOrId === 'number' ? optionsOrId : undefined]);
     const save = (0, react_1.useCallback)((newEntity, extraData) => __awaiter(this, void 0, void 0, function* () {
         setIsServerLoading(true);
-        yield repository.saveAndSync(newEntity, { extraData, reload: false });
+        const rep = yield (0, typeorm_sync_1.waitForSyncRepository)(model);
+        yield rep.saveAndSync(newEntity, { extraData, reload: false });
         (0, react_dom_1.unstable_batchedUpdates)(() => {
             setIsServerLoading(false);
             setEntity(newEntity);
         });
-    }), [repository]);
+    }), [model]);
     (0, react_1.useEffect)(() => {
         if (!repository) {
             return undefined;
