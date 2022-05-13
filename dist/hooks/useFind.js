@@ -1,20 +1,12 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useFind = void 0;
 const typeorm_sync_1 = require("typeorm-sync");
 const react_1 = require("react");
 const LoadingState_1 = require("./LoadingState");
 const ErrorType_1 = require("./ErrorType");
-function useFind(model, options, jsonInitialValue, dependencies = []) {
+const queryServer_1 = require("../helper/queryServer");
+function useFind(model, options = {}, jsonInitialValue, dependencies = []) {
     var _a;
     const [clientError, setClientError] = (0, react_1.useState)();
     const [serverError, setServerError] = (0, react_1.useState)();
@@ -27,33 +19,50 @@ function useFind(model, options, jsonInitialValue, dependencies = []) {
         let isCurrentRequest = true;
         setClientError(undefined);
         setServerError(undefined);
-        setIsClientLoading(true);
+        setIsClientLoading(false);
         setIsServerLoading(true);
-        typeorm_sync_1.Database.waitForInstance().then(() => __awaiter(this, void 0, void 0, function* () {
-            if (!isCurrentRequest) {
-                return;
+        console.log('LOG-d options', options);
+        (0, queryServer_1.queryServer)(model, options)
+            .then((result) => {
+            if (isCurrentRequest) {
+                setEntities(result);
+                setIsServerLoading(false);
             }
-            const repository = yield (0, typeorm_sync_1.waitForSyncRepository)(model);
-            repository.findAndSync(Object.assign(Object.assign({}, options), { runOnClient, callback: (foundModels, fromServer) => {
-                    if (isCurrentRequest) {
-                        setEntities(foundModels);
-                        setIsClientLoading(false);
-                        if (fromServer) {
-                            setIsServerLoading(false);
-                        }
-                    }
-                }, errorCallback: (error, fromServer) => {
-                    if (fromServer) {
-                        setServerError(error);
-                        setIsServerLoading(false);
-                        setIsClientLoading(false);
-                    }
-                    else {
-                        setClientError(error);
-                        setIsClientLoading(false);
-                    }
-                } }));
-        }));
+        })
+            .catch((e) => {
+            setServerError(e);
+            setIsServerLoading(false);
+        });
+        // Database.waitForInstance().then(async () => {
+        //     if (!isCurrentRequest) {
+        //         return;
+        //     }
+        //
+        //     const repository = await waitForSyncRepository(model);
+        //     repository.findAndSync({
+        //         ...options,
+        //         runOnClient,
+        //         callback: (foundModels, fromServer) => {
+        //             if (isCurrentRequest) {
+        //                 setEntities(foundModels);
+        //                 setIsClientLoading(false);
+        //                 if (fromServer) {
+        //                     setIsServerLoading(false);
+        //                 }
+        //             }
+        //         },
+        //         errorCallback: (error, fromServer) => {
+        //             if (fromServer) {
+        //                 setServerError(error);
+        //                 setIsServerLoading(false);
+        //                 setIsClientLoading(false);
+        //             } else {
+        //                 setClientError(error);
+        //                 setIsClientLoading(false);
+        //             }
+        //         },
+        //     });
+        // });
         return () => {
             isCurrentRequest = false;
         };

@@ -14,13 +14,14 @@ import { useRepository } from './useRepository';
 // eslint-disable-next-line camelcase
 import { unstable_batchedUpdates } from 'react-dom';
 import { JSONValue } from 'js-helper';
+import { queryServer } from '../helper/queryServer';
 
 export function useFindOne<ModelType extends typeof SyncModel>(
     model: ModelType,
     id: number,
     jsonInitialValue?: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>
 ): [
-    InstanceType<ModelType>,
+    InstanceType<ModelType> | undefined | null,
     LoadingState,
     { type: ErrorType; error: any },
     (entity: InstanceType<ModelType>, extraData?: JSONValue) => Promise<void>
@@ -31,7 +32,7 @@ export function useFindOne<ModelType extends typeof SyncModel>(
     jsonInitialValue?: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>,
     dependencies?: any[]
 ): [
-    InstanceType<ModelType>,
+    InstanceType<ModelType> | undefined | null,
     LoadingState,
     { type: ErrorType; error: any },
     (entity: InstanceType<ModelType>, extraData?: JSONValue) => Promise<void>
@@ -87,38 +88,50 @@ export function useFindOne<ModelType extends typeof SyncModel>(
 
         setClientError(undefined);
         setServerError(undefined);
-        setIsClientLoading(true);
+        setIsClientLoading(false);
         setIsServerLoading(true);
 
-        Database.waitForInstance().then(() => {
-            if (!isCurrentRequest) {
-                return;
-            }
-
-            repository.findOneAndSync({
-                ...options,
-                runOnClient,
-                callback: (foundModels, fromServer) => {
-                    if (isCurrentRequest) {
-                        setEntity(foundModels);
-                        setIsClientLoading(false);
-                        if (fromServer) {
-                            setIsServerLoading(false);
-                        }
-                    }
-                },
-                errorCallback: (error, fromServer) => {
-                    if (fromServer) {
-                        setServerError(error);
-                        setIsServerLoading(false);
-                        setIsClientLoading(false);
-                    } else {
-                        setClientError(error);
-                        setIsClientLoading(false);
-                    }
-                },
+        queryServer(model, options, true)
+            .then((result) => {
+                if (isCurrentRequest) {
+                    setEntity(result);
+                    setIsServerLoading(false);
+                }
+            })
+            .catch((e) => {
+                setServerError(e);
+                setIsServerLoading(false);
             });
-        });
+
+        // Database.waitForInstance().then(() => {
+        //     if (!isCurrentRequest) {
+        //         return;
+        //     }
+        //
+        //     repository.findOneAndSync({
+        //         ...options,
+        //         runOnClient,
+        //         callback: (foundModels, fromServer) => {
+        //             if (isCurrentRequest) {
+        //                 setEntity(foundModels);
+        //                 setIsClientLoading(false);
+        //                 if (fromServer) {
+        //                     setIsServerLoading(false);
+        //                 }
+        //             }
+        //         },
+        //         errorCallback: (error, fromServer) => {
+        //             if (fromServer) {
+        //                 setServerError(error);
+        //                 setIsServerLoading(false);
+        //                 setIsClientLoading(false);
+        //             } else {
+        //                 setClientError(error);
+        //                 setIsClientLoading(false);
+        //             }
+        //         },
+        //     });
+        // });
         return () => {
             isCurrentRequest = false;
         };
