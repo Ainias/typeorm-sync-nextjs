@@ -20,6 +20,7 @@ __exportStar(require("./hooks/ErrorType"), exports);
 __exportStar(require("./hooks/LoadingState"), exports);
 __exportStar(require("./hooks/useFind"), exports);
 __exportStar(require("./hooks/useFindOne"), exports);
+__exportStar(require("./hooks/useInitialResult"), exports);
 __exportStar(require("./hooks/useRepository"), exports);
 __exportStar(require("./index"), exports);
 //# sourceMappingURL=index.js.map

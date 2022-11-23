@@ -31,28 +31,13 @@ function useFind(model, options = {}, jsonInitialValue, dependencies = []) {
         setServerError(undefined);
         setIsClientLoading(false);
         setIsServerLoading(true);
-        console.log('LOG-d useFindEffect');
-        // queryServer(model, options)
-        //     .then((result) => {
-        //         if (isCurrentRequest) {
-        //             setEntities(result);
-        //             setIsServerLoading(false);
-        //         }
-        //     })
-        //     .catch((e) => {
-        //         setServerError(e);
-        //         setIsServerLoading(false);
-        //     });
         typeorm_sync_1.Database.waitForInstance()
             .then(() => __awaiter(this, void 0, void 0, function* () {
-            console.log('wait for instance');
             if (!isCurrentRequest) {
                 return;
             }
             const repository = yield (0, typeorm_sync_1.waitForSyncRepository)(model);
-            console.log('got repository', repository);
             yield repository.findAndSync(Object.assign(Object.assign({}, options), { runOnClient, callback: (foundModels, fromServer) => {
-                    console.log('LOG-d got results', foundModels, fromServer);
                     if (isCurrentRequest) {
                         return;
                     }
