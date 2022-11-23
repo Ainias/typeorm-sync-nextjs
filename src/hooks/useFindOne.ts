@@ -91,47 +91,49 @@ export function useFindOne<ModelType extends typeof SyncModel>(
         setIsClientLoading(false);
         setIsServerLoading(true);
 
-        queryServer(model, options, true)
-            .then((result) => {
-                if (isCurrentRequest) {
-                    setEntity(result);
-                    setIsServerLoading(false);
+        Database.waitForInstance()
+            .then(() => {
+                if (!isCurrentRequest) {
+                    return;
                 }
+
+                repository.findOneAndSync({
+                    ...options,
+                    runOnClient,
+                    callback: (foundModels, fromServer) => {
+                        if (!isCurrentRequest) {
+                            return;
+                        }
+                        setEntity(foundModels);
+                        setIsClientLoading(false);
+                        if (fromServer) {
+                            setIsServerLoading(false);
+                        }
+                    },
+                    errorCallback: (error, fromServer) => {
+                        if (!isCurrentRequest) {
+                            return;
+                        }
+                        if (fromServer) {
+                            setServerError(error);
+                            setIsServerLoading(false);
+                            setIsClientLoading(false);
+                        } else {
+                            setClientError(error);
+                            setIsClientLoading(false);
+                        }
+                    },
+                });
             })
             .catch((e) => {
+                console.error(e);
+                if (!isCurrentRequest) {
+                    return;
+                }
                 setServerError(e);
                 setIsServerLoading(false);
+                setIsClientLoading(false);
             });
-
-        // Database.waitForInstance().then(() => {
-        //     if (!isCurrentRequest) {
-        //         return;
-        //     }
-        //
-        //     repository.findOneAndSync({
-        //         ...options,
-        //         runOnClient,
-        //         callback: (foundModels, fromServer) => {
-        //             if (isCurrentRequest) {
-        //                 setEntity(foundModels);
-        //                 setIsClientLoading(false);
-        //                 if (fromServer) {
-        //                     setIsServerLoading(false);
-        //                 }
-        //             }
-        //         },
-        //         errorCallback: (error, fromServer) => {
-        //             if (fromServer) {
-        //                 setServerError(error);
-        //                 setIsServerLoading(false);
-        //                 setIsClientLoading(false);
-        //             } else {
-        //                 setClientError(error);
-        //                 setIsClientLoading(false);
-        //             }
-        //         },
-        //     });
-        // });
         return () => {
             isCurrentRequest = false;
         };

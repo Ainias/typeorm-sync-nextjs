@@ -19,6 +19,7 @@ export declare function useRepository<T extends typeof SyncModel>(model: T): imp
     remove: (__0_0: InstanceType<T>, __0_1?: import("typeorm").RemoveOptions, __0_2?: boolean) => Promise<InstanceType<T>>;
     removeAndSync(entity: InstanceType<T>, options?: import("typeorm-sync").SyncOptions<import("typeorm").RemoveOptions>): Promise<InstanceType<T>>;
     findAndSync(options: import("typeorm-sync").SyncWithCallbackOptions<import("typeorm").FindManyOptions<InstanceType<T>>, InstanceType<T>[]>): Promise<void>;
+    promiseFindAndSync(options?: import("typeorm").FindManyOptions<InstanceType<T>>): Promise<[InstanceType<T>[], InstanceType<T>[]]>;
     findOneAndSync(options: import("typeorm-sync").SyncWithCallbackOptions<import("typeorm").FindOneOptions<InstanceType<T>>, InstanceType<T>>): Promise<void>;
     initialFind(options?: import("typeorm").FindManyOptions<InstanceType<T>>): Promise<import("typeorm-sync").MultipleInitialResult<T>>;
     initialFindOne(options: import("typeorm").FindOneOptions<InstanceType<T>>): Promise<import("typeorm-sync").SingleInitialResult<T>>;

@@ -10,7 +10,9 @@ import { useEffect, useState } from 'react';
 import { FindManyOptions } from 'typeorm';
 import { LoadingState } from './LoadingState';
 import { ErrorType } from './ErrorType';
-import { queryServer } from '../helper/queryServer';
+
+// Empty result outside of hook => every time same array
+const emptyResult = [];
 
 export function useFind<ModelType extends typeof SyncModel>(
     model: ModelType,
@@ -36,57 +38,58 @@ export function useFind<ModelType extends typeof SyncModel>(
         setIsClientLoading(false);
         setIsServerLoading(true);
 
-        console.log('LOG-d options', options);
-
-        queryServer(model, options)
-            .then((result) => {
-                if (isCurrentRequest) {
-                    setEntities(result);
-                    setIsServerLoading(false);
+        Database.waitForInstance()
+            .then(async () => {
+                if (!isCurrentRequest) {
+                    return;
                 }
+
+                const repository = await waitForSyncRepository(model);
+                await repository.findAndSync({
+                    ...options,
+                    runOnClient,
+                    callback: (foundModels, fromServer) => {
+                        if (isCurrentRequest) {
+                            return;
+                        }
+                        setEntities(foundModels);
+                        setIsClientLoading(false);
+                        if (fromServer) {
+                            setIsServerLoading(false);
+                        }
+                    },
+                    errorCallback: (error, fromServer) => {
+                        if (!isCurrentRequest) {
+                            return;
+                        }
+
+                        if (fromServer) {
+                            setServerError(error);
+                            setIsServerLoading(false);
+                            setIsClientLoading(false);
+                        } else {
+                            setClientError(error);
+                            setIsClientLoading(false);
+                        }
+                    },
+                });
             })
             .catch((e) => {
+                console.error(e);
+                if (!isCurrentRequest) {
+                    return;
+                }
                 setServerError(e);
                 setIsServerLoading(false);
+                setIsClientLoading(false);
             });
-
-        // Database.waitForInstance().then(async () => {
-        //     if (!isCurrentRequest) {
-        //         return;
-        //     }
-        //
-        //     const repository = await waitForSyncRepository(model);
-        //     repository.findAndSync({
-        //         ...options,
-        //         runOnClient,
-        //         callback: (foundModels, fromServer) => {
-        //             if (isCurrentRequest) {
-        //                 setEntities(foundModels);
-        //                 setIsClientLoading(false);
-        //                 if (fromServer) {
-        //                     setIsServerLoading(false);
-        //                 }
-        //             }
-        //         },
-        //         errorCallback: (error, fromServer) => {
-        //             if (fromServer) {
-        //                 setServerError(error);
-        //                 setIsServerLoading(false);
-        //                 setIsClientLoading(false);
-        //             } else {
-        //                 setClientError(error);
-        //                 setIsClientLoading(false);
-        //             }
-        //         },
-        //     });
-        // });
         return () => {
             isCurrentRequest = false;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [model, runOnClient, ...dependencies]);
     return [
-        entities ?? initialValue?.entities ?? [],
+        entities ?? initialValue?.entities ?? emptyResult,
         isServerLoading ? LoadingState.SERVER : isClientLoading ? LoadingState.CLIENT : LoadingState.NOTHING,
         serverError
             ? { type: ErrorType.SERVER, error: serverError }

@@ -10,24 +10,28 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.queryServer = void 0;
-const typeorm_sync_1 = require("typeorm-sync");
 function queryServer(model, query, singleInstance = false) {
     return __awaiter(this, void 0, void 0, function* () {
-        const db = yield typeorm_sync_1.Database.waitForInstance();
-        const modelId = typeorm_sync_1.Database.getModelIdFor(model);
-        const result = yield db.queryServer(modelId, undefined, query);
-        if (result.success === true) {
-            const modelContainer = typeorm_sync_1.SyncHelper.convertToModelContainer(result.syncContainer);
-            const entities = Object.values(modelContainer[modelId]);
-            if (singleInstance) {
-                if (entities.length > 0) {
-                    return entities[0];
-                }
-                return null;
-            }
-            return entities;
+        if (singleInstance) {
+            return undefined;
         }
-        throw new Error(result.error.message);
+        return [];
+        // const db = await Database.waitForInstance();
+        // const modelId = Database.getModelIdFor(model);
+        // const result = await db.queryServer(modelId, undefined, query);
+        //
+        // if (result.success === true) {
+        //     const modelContainer = SyncHelper.convertToModelContainer(result.syncContainer);
+        //     const entities = Object.values(modelContainer[modelId]) as InstanceType<Model>[];
+        //     if (singleInstance) {
+        //         if (entities.length > 0) {
+        //             return entities[0];
+        //         }
+        //         return null;
+        //     }
+        //     return entities;
+        // }
+        // throw new Error(result.error.message);
     });
 }
 exports.queryServer = queryServer;
