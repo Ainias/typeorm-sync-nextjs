@@ -1,8 +1,8 @@
-import { SyncModel, SyncOptions, SingleInitialResult, SingleInitialResultJSON } from 'typeorm-sync';
+import { SyncModel, SyncOptions, SingleInitialResult, SingleInitialResultJSON } from '@ainias42/typeorm-sync';
 import { FindOneOptions } from 'typeorm';
 import { LoadingState } from './LoadingState';
 import { ErrorType } from './ErrorType';
-import { JSONValue } from 'js-helper';
+import { JSONValue } from '@ainias42/js-helper';
 export declare function useFindOne<ModelType extends typeof SyncModel>(model: ModelType, id: number, jsonInitialValue?: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>): [
     InstanceType<ModelType> | undefined | null,
     LoadingState,

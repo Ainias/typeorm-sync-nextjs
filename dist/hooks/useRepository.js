@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useRepository = void 0;
-const typeorm_sync_1 = require("typeorm-sync");
+const typeorm_sync_1 = require("@ainias42/typeorm-sync");
 const react_1 = require("react");
 function useRepository(model) {
     const [repository, setRepository] = (0, react_1.useState)();

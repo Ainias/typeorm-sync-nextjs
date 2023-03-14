@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useFindOne = void 0;
-const typeorm_sync_1 = require("typeorm-sync");
+const typeorm_sync_1 = require("@ainias42/typeorm-sync");
 const react_1 = require("react");
 const LoadingState_1 = require("./LoadingState");
 const ErrorType_1 = require("./ErrorType");

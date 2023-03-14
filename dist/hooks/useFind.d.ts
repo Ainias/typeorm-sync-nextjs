@@ -1,4 +1,4 @@
-import { SyncModel, SyncOptions, MultipleInitialResult, MultipleInitialResultJSON } from 'typeorm-sync';
+import { SyncModel, SyncOptions, MultipleInitialResult, MultipleInitialResultJSON } from '@ainias42/typeorm-sync';
 import { FindManyOptions } from 'typeorm';
 import { LoadingState } from './LoadingState';
 import { ErrorType } from './ErrorType';
