@@ -28,6 +28,8 @@
     "react-hooks"
   ],
   "rules": {
+    "default-param-last": "off",
+    "no-nested-ternary": "off",
     "linebreak-style": [
       "error",
       "unix"

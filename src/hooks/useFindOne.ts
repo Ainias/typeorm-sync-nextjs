@@ -5,7 +5,7 @@ import {
     SingleInitialResult,
     SingleInitialResultJSON,
     waitForSyncRepository,
-} from 'typeorm-sync';
+} from '@ainias42/typeorm-sync';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FindOneOptions, FindOptionsWhere } from 'typeorm';
 import { LoadingState } from './LoadingState';
@@ -13,8 +13,7 @@ import { ErrorType } from './ErrorType';
 import { useRepository } from './useRepository';
 // eslint-disable-next-line camelcase
 import { unstable_batchedUpdates } from 'react-dom';
-import { JSONValue } from 'js-helper';
-import { queryServer } from '../helper/queryServer';
+import { JSONValue } from '@ainias42/js-helper';
 
 export function useFindOne<ModelType extends typeof SyncModel>(
     model: ModelType,

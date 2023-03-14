@@ -6,7 +6,7 @@ import {
     SingleInitialResultJSON,
     SyncModel,
     waitForSyncRepository,
-} from 'typeorm-sync';
+} from '@ainias42/typeorm-sync';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadingState } from './LoadingState';
 import { ErrorType } from './ErrorType';

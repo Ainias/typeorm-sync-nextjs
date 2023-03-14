@@ -5,7 +5,7 @@ import {
     SyncOptions,
     MultipleInitialResult,
     MultipleInitialResultJSON,
-} from 'typeorm-sync';
+} from '@ainias42/typeorm-sync';
 import { useEffect, useState } from 'react';
 import { FindManyOptions } from 'typeorm';
 import { LoadingState } from './LoadingState';
