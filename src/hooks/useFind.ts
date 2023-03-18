@@ -6,7 +6,7 @@ import {
     MultipleInitialResult,
     MultipleInitialResultJSON,
 } from '@ainias42/typeorm-sync';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FindManyOptions } from 'typeorm';
 import { LoadingState } from './LoadingState';
 import { ErrorType } from './ErrorType';
@@ -16,10 +16,28 @@ const emptyResult = [];
 
 export function useFind<ModelType extends typeof SyncModel>(
     model: ModelType,
-    options: SyncOptions<FindManyOptions<InstanceType<ModelType>>> = {},
+    options?: SyncOptions<FindManyOptions<InstanceType<ModelType>>>,
+    dependencies?: any[]
+);
+
+/** @deprecated useFind with jsonInitialValue is deprecated. Use 'useInitialResult' instead */
+export function useFind<ModelType extends typeof SyncModel>(
+    model: ModelType,
+    options?: SyncOptions<FindManyOptions<InstanceType<ModelType>>>,
     jsonInitialValue?: MultipleInitialResult<ModelType> | MultipleInitialResultJSON<ModelType>,
+    dependencies?: any[]
+);
+export function useFind<ModelType extends typeof SyncModel>(
+    model: ModelType,
+    options: SyncOptions<FindManyOptions<InstanceType<ModelType>>> = {},
+    jsonInitialValueOrDependencies?: MultipleInitialResult<ModelType> | MultipleInitialResultJSON<ModelType> | any[],
     dependencies: any[] = []
 ) {
+    const jsonInitialValue = Array.isArray(jsonInitialValueOrDependencies) ? undefined : jsonInitialValueOrDependencies;
+    if (Array.isArray(jsonInitialValueOrDependencies)) {
+        dependencies = jsonInitialValueOrDependencies;
+    }
+
     const [clientError, setClientError] = useState<any>();
     const [serverError, setServerError] = useState<any>();
     const [isClientLoading, setIsClientLoading] = useState(false);
@@ -32,7 +50,6 @@ export function useFind<ModelType extends typeof SyncModel>(
 
     useEffect(() => {
         let isCurrentRequest = true;
-
         setClientError(undefined);
         setServerError(undefined);
         setIsClientLoading(false);
@@ -49,7 +66,7 @@ export function useFind<ModelType extends typeof SyncModel>(
                     ...options,
                     runOnClient,
                     callback: (foundModels, fromServer) => {
-                        if (isCurrentRequest) {
+                        if (!isCurrentRequest) {
                             return;
                         }
                         setEntities(foundModels);
@@ -79,10 +96,12 @@ export function useFind<ModelType extends typeof SyncModel>(
                 if (!isCurrentRequest) {
                     return;
                 }
+
                 setServerError(e);
                 setIsServerLoading(false);
                 setIsClientLoading(false);
             });
+
         return () => {
             isCurrentRequest = false;
         };

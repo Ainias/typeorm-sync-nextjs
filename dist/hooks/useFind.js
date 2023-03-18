@@ -16,8 +16,12 @@ const LoadingState_1 = require("./LoadingState");
 const ErrorType_1 = require("./ErrorType");
 // Empty result outside of hook => every time same array
 const emptyResult = [];
-function useFind(model, options = {}, jsonInitialValue, dependencies = []) {
+function useFind(model, options = {}, jsonInitialValueOrDependencies, dependencies = []) {
     var _a;
+    const jsonInitialValue = Array.isArray(jsonInitialValueOrDependencies) ? undefined : jsonInitialValueOrDependencies;
+    if (Array.isArray(jsonInitialValueOrDependencies)) {
+        dependencies = jsonInitialValueOrDependencies;
+    }
     const [clientError, setClientError] = (0, react_1.useState)();
     const [serverError, setServerError] = (0, react_1.useState)();
     const [isClientLoading, setIsClientLoading] = (0, react_1.useState)(false);
@@ -38,7 +42,7 @@ function useFind(model, options = {}, jsonInitialValue, dependencies = []) {
             }
             const repository = yield (0, typeorm_sync_1.waitForSyncRepository)(model);
             yield repository.findAndSync(Object.assign(Object.assign({}, options), { runOnClient, callback: (foundModels, fromServer) => {
-                    if (isCurrentRequest) {
+                    if (!isCurrentRequest) {
                         return;
                     }
                     setEntities(foundModels);

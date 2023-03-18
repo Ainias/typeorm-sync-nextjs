@@ -6,3 +6,4 @@ export * from './hooks/useFind';
 export * from './hooks/useFindOne';
 export * from './hooks/useInitialResult';
 export * from './hooks/useRepository';
+export * from './index';
