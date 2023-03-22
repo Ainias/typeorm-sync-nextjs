@@ -1,4 +1,4 @@
-import { SyncModel, SyncOptions, SingleInitialResult, SingleInitialResultJSON } from '@ainias42/typeorm-sync';
+import { SingleInitialResult, SingleInitialResultJSON, SyncModel, SyncOptions } from '@ainias42/typeorm-sync';
 import { FindOneOptions } from 'typeorm';
 import { LoadingState } from './LoadingState';
 import { ErrorType } from './ErrorType';

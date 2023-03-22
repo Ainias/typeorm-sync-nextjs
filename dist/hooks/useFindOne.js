@@ -99,7 +99,11 @@ function useFindOne(model, optionsOrId, jsonInitialValue, dependencies = []) {
     }, [model, options, repository, runOnClient]);
     return [
         entity !== undefined ? entity : initialValue === null || initialValue === void 0 ? void 0 : initialValue.entity,
-        isServerLoading ? LoadingState_1.LoadingState.SERVER : isClientLoading ? LoadingState_1.LoadingState.CLIENT : LoadingState_1.LoadingState.NOTHING,
+        isServerLoading
+            ? isClientLoading
+                ? LoadingState_1.LoadingState.CLIENT_AND_SERVER
+                : LoadingState_1.LoadingState.SERVER
+            : LoadingState_1.LoadingState.NOTHING,
         serverError
             ? { type: ErrorType_1.ErrorType.SERVER, error: serverError }
             : clientError

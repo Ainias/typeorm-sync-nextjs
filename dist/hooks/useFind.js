@@ -1,19 +1,11 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useFind = void 0;
 const typeorm_sync_1 = require("@ainias42/typeorm-sync");
 const react_1 = require("react");
-const LoadingState_1 = require("./LoadingState");
 const ErrorType_1 = require("./ErrorType");
+const useTypeormSyncCache_1 = require("../store/useTypeormSyncCache");
+const useLoadResultFor_1 = require("./useLoadResultFor");
 // Empty result outside of hook => every time same array
 const emptyResult = [];
 function useFind(model, options = {}, jsonInitialValueOrDependencies, dependencies = []) {
@@ -22,66 +14,20 @@ function useFind(model, options = {}, jsonInitialValueOrDependencies, dependenci
     if (Array.isArray(jsonInitialValueOrDependencies)) {
         dependencies = jsonInitialValueOrDependencies;
     }
-    const [clientError, setClientError] = (0, react_1.useState)();
-    const [serverError, setServerError] = (0, react_1.useState)();
-    const [isClientLoading, setIsClientLoading] = (0, react_1.useState)(false);
-    const [isServerLoading, setIsServerLoading] = (0, react_1.useState)(false);
-    const [entities, setEntities] = (0, react_1.useState)(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const memoizedOptions = (0, react_1.useMemo)(() => options, dependencies);
+    const queryId = (0, react_1.useMemo)(() => JSON.stringify(memoizedOptions), [memoizedOptions]);
+    const queryData = (0, useTypeormSyncCache_1.useTypeormSyncCache)((state) => { var _a; return (_a = state.queries[queryId]) !== null && _a !== void 0 ? _a : undefined; });
+    const { clientError, serverError, loadingState, result: entities } = queryData !== null && queryData !== void 0 ? queryData : {};
     const initialValue = jsonInitialValue ? typeorm_sync_1.MultipleInitialResult.fromJSON(jsonInitialValue) : undefined;
-    const [runOnClient] = (0, react_1.useState)(initialValue === undefined);
+    const loadResult = (0, useLoadResultFor_1.useLoadResultFor)(model, memoizedOptions, !initialValue);
     (0, react_1.useEffect)(() => {
-        let isCurrentRequest = true;
-        setClientError(undefined);
-        setServerError(undefined);
-        setIsClientLoading(false);
-        setIsServerLoading(true);
-        typeorm_sync_1.Database.waitForInstance()
-            .then(() => __awaiter(this, void 0, void 0, function* () {
-            if (!isCurrentRequest) {
-                return;
-            }
-            const repository = yield (0, typeorm_sync_1.waitForSyncRepository)(model);
-            yield repository.findAndSync(Object.assign(Object.assign({}, options), { runOnClient, callback: (foundModels, fromServer) => {
-                    if (!isCurrentRequest) {
-                        return;
-                    }
-                    setEntities(foundModels);
-                    setIsClientLoading(false);
-                    if (fromServer) {
-                        setIsServerLoading(false);
-                    }
-                }, errorCallback: (error, fromServer) => {
-                    if (!isCurrentRequest) {
-                        return;
-                    }
-                    if (fromServer) {
-                        setServerError(error);
-                        setIsServerLoading(false);
-                        setIsClientLoading(false);
-                    }
-                    else {
-                        setClientError(error);
-                        setIsClientLoading(false);
-                    }
-                } }));
-        }))
-            .catch((e) => {
-            console.error(e);
-            if (!isCurrentRequest) {
-                return;
-            }
-            setServerError(e);
-            setIsServerLoading(false);
-            setIsClientLoading(false);
-        });
-        return () => {
-            isCurrentRequest = false;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [model, runOnClient, ...dependencies]);
+        console.log('LOG-d useFind - loadResult');
+        loadResult();
+    }, [loadResult]);
     return [
         (_a = entities !== null && entities !== void 0 ? entities : initialValue === null || initialValue === void 0 ? void 0 : initialValue.entities) !== null && _a !== void 0 ? _a : emptyResult,
-        isServerLoading ? LoadingState_1.LoadingState.SERVER : isClientLoading ? LoadingState_1.LoadingState.CLIENT : LoadingState_1.LoadingState.NOTHING,
+        loadingState,
         serverError
             ? { type: ErrorType_1.ErrorType.SERVER, error: serverError }
             : clientError

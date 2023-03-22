@@ -7,9 +7,10 @@ import {
     SyncModel,
     waitForSyncRepository,
 } from '@ainias42/typeorm-sync';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LoadingState } from './LoadingState';
+import { useEffect, useMemo, useRef } from 'react';
 import { ErrorType } from './ErrorType';
+import { useTypeormSyncCache } from '../store/useTypeormSyncCache';
+import { useLoadResultFor } from './useLoadResultFor';
 
 // Empty result outside of hook => every time same array
 
@@ -29,12 +30,6 @@ export function useInitialResult<ModelType extends typeof SyncModel>(
         | SingleInitialResultJSON<ModelType>,
     outdatedAfterSeconds = 30
 ) {
-    const [clientError, setClientError] = useState<any>();
-    const [serverError, setServerError] = useState<any>();
-    const [isClientLoading, setIsClientLoading] = useState(false);
-    const [isServerLoading, setIsServerLoading] = useState(false);
-
-    const [entities, setEntities] = useState<InstanceType<ModelType>[] | InstanceType<ModelType>>(undefined);
     const initialValue = useMemo(() => {
         if ('entities' in jsonInitialValue) {
             return MultipleInitialResult.fromJSON(jsonInitialValue);
@@ -42,9 +37,15 @@ export function useInitialResult<ModelType extends typeof SyncModel>(
         return SingleInitialResult.fromJSON(jsonInitialValue);
     }, [jsonInitialValue]);
 
-    const [reloadCounter, setReloadCounter] = useState(0);
+    const queryId = useMemo(() => JSON.stringify(initialValue.query), [initialValue.query]);
+    const queryData = useTypeormSyncCache((state) => state.queries[queryId] ?? undefined);
+    const { clientError, serverError, loadingState, result: entities } = queryData ?? {};
+
     const saved = useRef(false);
-    const isOutdated = new Date().getTime() - initialValue.date.getTime() >= outdatedAfterSeconds * 1000;
+    const lastQueryTimestamp = queryData?.lastQueryTimestamp ?? initialValue.isServer ? initialValue.date.getTime() : 0;
+    const isOutdated = new Date().getTime() - lastQueryTimestamp >= outdatedAfterSeconds * 1000;
+
+    const loadResult = useLoadResultFor(initialValue.model, initialValue.query, false);
 
     useEffect(() => {
         if (!saved.current && !isOutdated) {
@@ -59,86 +60,14 @@ export function useInitialResult<ModelType extends typeof SyncModel>(
     }, [initialValue, isOutdated]);
 
     useEffect(() => {
-        let isCurrentRequest = true;
-
-        const synchronize = async () => {
-            try {
-                await Database.waitForInstance();
-                if (!isCurrentRequest) {
-                    return;
-                }
-
-                const repository = await waitForSyncRepository(initialValue.model);
-                if (!isCurrentRequest) {
-                    return;
-                }
-
-                await repository.findAndSync({
-                    ...initialValue.query,
-                    runOnClient: isOutdated,
-                    callback: (foundModels, fromServer) => {
-                        if (!isCurrentRequest) {
-                            return;
-                        }
-
-                        setEntities(foundModels);
-                        setIsClientLoading(false);
-                        if (fromServer) {
-                            setIsServerLoading(false);
-                        }
-                    },
-                    errorCallback: (error, fromServer) => {
-                        if (!isCurrentRequest) {
-                            return;
-                        }
-
-                        if (fromServer) {
-                            setServerError(error);
-                            setIsServerLoading(false);
-                            setIsClientLoading(false);
-                        } else {
-                            setClientError(error);
-                            setIsClientLoading(false);
-                        }
-                    },
-                });
-            } catch (e) {
-                console.error(e);
-                if (!isCurrentRequest) {
-                    return;
-                }
-
-                setServerError(e);
-                setIsServerLoading(false);
-                setIsClientLoading(false);
-            }
-        };
-
         if (isOutdated) {
-            setClientError(undefined);
-            setServerError(undefined);
-            setIsClientLoading(false);
-            setIsServerLoading(true);
-
-            synchronize();
+            loadResult();
         }
-        return () => {
-            isCurrentRequest = false;
-        };
-    }, [initialValue.model, initialValue.query, isOutdated, reloadCounter]);
-
-    const reload = useCallback(() => setReloadCounter((old) => old + 1), []);
+    }, [isOutdated, loadResult]);
 
     let resultEntities = entities;
     if (!entities) {
         resultEntities = 'entities' in initialValue ? initialValue.entities : initialValue.entity;
-    }
-
-    let loadingState = LoadingState.NOTHING;
-    if (isServerLoading) {
-        loadingState = LoadingState.SERVER;
-    } else if (isClientLoading) {
-        loadingState = LoadingState.CLIENT;
     }
 
     let error;
@@ -148,5 +77,5 @@ export function useInitialResult<ModelType extends typeof SyncModel>(
         error = { type: ErrorType.CLIENT, error: clientError };
     }
 
-    return [resultEntities, loadingState, error, reload] as const;
+    return [resultEntities, loadingState, error, loadResult] as const;
 }

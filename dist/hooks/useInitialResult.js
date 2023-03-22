@@ -12,23 +12,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.useInitialResult = void 0;
 const typeorm_sync_1 = require("@ainias42/typeorm-sync");
 const react_1 = require("react");
-const LoadingState_1 = require("./LoadingState");
 const ErrorType_1 = require("./ErrorType");
+const useTypeormSyncCache_1 = require("../store/useTypeormSyncCache");
+const useLoadResultFor_1 = require("./useLoadResultFor");
 function useInitialResult(jsonInitialValue, outdatedAfterSeconds = 30) {
-    const [clientError, setClientError] = (0, react_1.useState)();
-    const [serverError, setServerError] = (0, react_1.useState)();
-    const [isClientLoading, setIsClientLoading] = (0, react_1.useState)(false);
-    const [isServerLoading, setIsServerLoading] = (0, react_1.useState)(false);
-    const [entities, setEntities] = (0, react_1.useState)(undefined);
+    var _a;
     const initialValue = (0, react_1.useMemo)(() => {
         if ('entities' in jsonInitialValue) {
             return typeorm_sync_1.MultipleInitialResult.fromJSON(jsonInitialValue);
         }
         return typeorm_sync_1.SingleInitialResult.fromJSON(jsonInitialValue);
     }, [jsonInitialValue]);
-    const [reloadCounter, setReloadCounter] = (0, react_1.useState)(0);
+    const queryId = (0, react_1.useMemo)(() => JSON.stringify(initialValue.query), [initialValue.query]);
+    const queryData = (0, useTypeormSyncCache_1.useTypeormSyncCache)((state) => { var _a; return (_a = state.queries[queryId]) !== null && _a !== void 0 ? _a : undefined; });
+    const { clientError, serverError, loadingState, result: entities } = queryData !== null && queryData !== void 0 ? queryData : {};
     const saved = (0, react_1.useRef)(false);
-    const isOutdated = new Date().getTime() - initialValue.date.getTime() >= outdatedAfterSeconds * 1000;
+    const lastQueryTimestamp = ((_a = queryData === null || queryData === void 0 ? void 0 : queryData.lastQueryTimestamp) !== null && _a !== void 0 ? _a : initialValue.isServer) ? initialValue.date.getTime() : 0;
+    const isOutdated = new Date().getTime() - lastQueryTimestamp >= outdatedAfterSeconds * 1000;
+    const loadResult = (0, useLoadResultFor_1.useLoadResultFor)(initialValue.model, initialValue.query, false);
     (0, react_1.useEffect)(() => {
         if (!saved.current && !isOutdated) {
             saved.current = true;
@@ -41,73 +42,13 @@ function useInitialResult(jsonInitialValue, outdatedAfterSeconds = 30) {
         }
     }, [initialValue, isOutdated]);
     (0, react_1.useEffect)(() => {
-        let isCurrentRequest = true;
-        const synchronize = () => __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield typeorm_sync_1.Database.waitForInstance();
-                if (!isCurrentRequest) {
-                    return;
-                }
-                const repository = yield (0, typeorm_sync_1.waitForSyncRepository)(initialValue.model);
-                if (!isCurrentRequest) {
-                    return;
-                }
-                yield repository.findAndSync(Object.assign(Object.assign({}, initialValue.query), { runOnClient: isOutdated, callback: (foundModels, fromServer) => {
-                        if (!isCurrentRequest) {
-                            return;
-                        }
-                        setEntities(foundModels);
-                        setIsClientLoading(false);
-                        if (fromServer) {
-                            setIsServerLoading(false);
-                        }
-                    }, errorCallback: (error, fromServer) => {
-                        if (!isCurrentRequest) {
-                            return;
-                        }
-                        if (fromServer) {
-                            setServerError(error);
-                            setIsServerLoading(false);
-                            setIsClientLoading(false);
-                        }
-                        else {
-                            setClientError(error);
-                            setIsClientLoading(false);
-                        }
-                    } }));
-            }
-            catch (e) {
-                console.error(e);
-                if (!isCurrentRequest) {
-                    return;
-                }
-                setServerError(e);
-                setIsServerLoading(false);
-                setIsClientLoading(false);
-            }
-        });
         if (isOutdated) {
-            setClientError(undefined);
-            setServerError(undefined);
-            setIsClientLoading(false);
-            setIsServerLoading(true);
-            synchronize();
+            loadResult();
         }
-        return () => {
-            isCurrentRequest = false;
-        };
-    }, [initialValue.model, initialValue.query, isOutdated, reloadCounter]);
-    const reload = (0, react_1.useCallback)(() => setReloadCounter((old) => old + 1), []);
+    }, [isOutdated, loadResult]);
     let resultEntities = entities;
     if (!entities) {
         resultEntities = 'entities' in initialValue ? initialValue.entities : initialValue.entity;
-    }
-    let loadingState = LoadingState_1.LoadingState.NOTHING;
-    if (isServerLoading) {
-        loadingState = LoadingState_1.LoadingState.SERVER;
-    }
-    else if (isClientLoading) {
-        loadingState = LoadingState_1.LoadingState.CLIENT;
     }
     let error;
     if (serverError) {
@@ -116,7 +57,7 @@ function useInitialResult(jsonInitialValue, outdatedAfterSeconds = 30) {
     else {
         error = { type: ErrorType_1.ErrorType.CLIENT, error: clientError };
     }
-    return [resultEntities, loadingState, error, reload];
+    return [resultEntities, loadingState, error, loadResult];
 }
 exports.useInitialResult = useInitialResult;
 //# sourceMappingURL=useInitialResult.js.map

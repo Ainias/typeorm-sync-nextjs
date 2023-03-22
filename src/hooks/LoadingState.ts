@@ -1,5 +1,5 @@
 export enum LoadingState {
     NOTHING,
-    CLIENT,
+    CLIENT_AND_SERVER,
     SERVER,
 }

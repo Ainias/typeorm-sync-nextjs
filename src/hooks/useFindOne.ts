@@ -1,12 +1,12 @@
 import {
-    SyncModel,
-    SyncOptions,
     Database,
     SingleInitialResult,
     SingleInitialResultJSON,
+    SyncModel,
+    SyncOptions,
     waitForSyncRepository,
 } from '@ainias42/typeorm-sync';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FindOneOptions, FindOptionsWhere } from 'typeorm';
 import { LoadingState } from './LoadingState';
 import { ErrorType } from './ErrorType';
@@ -140,7 +140,11 @@ export function useFindOne<ModelType extends typeof SyncModel>(
 
     return [
         entity !== undefined ? entity : initialValue?.entity,
-        isServerLoading ? LoadingState.SERVER : isClientLoading ? LoadingState.CLIENT : LoadingState.NOTHING,
+        isServerLoading
+            ? isClientLoading
+                ? LoadingState.CLIENT_AND_SERVER
+                : LoadingState.SERVER
+            : LoadingState.NOTHING,
         serverError
             ? { type: ErrorType.SERVER, error: serverError }
             : clientError

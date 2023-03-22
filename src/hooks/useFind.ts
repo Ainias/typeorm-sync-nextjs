@@ -1,15 +1,9 @@
-import {
-    Database,
-    waitForSyncRepository,
-    SyncModel,
-    SyncOptions,
-    MultipleInitialResult,
-    MultipleInitialResultJSON,
-} from '@ainias42/typeorm-sync';
-import { useEffect, useRef, useState } from 'react';
+import { SyncModel, SyncOptions, MultipleInitialResult, MultipleInitialResultJSON } from '@ainias42/typeorm-sync';
+import { useEffect, useMemo } from 'react';
 import { FindManyOptions } from 'typeorm';
-import { LoadingState } from './LoadingState';
 import { ErrorType } from './ErrorType';
+import { useTypeormSyncCache } from '../store/useTypeormSyncCache';
+import { useLoadResultFor } from './useLoadResultFor';
 
 // Empty result outside of hook => every time same array
 const emptyResult = [];
@@ -38,78 +32,25 @@ export function useFind<ModelType extends typeof SyncModel>(
         dependencies = jsonInitialValueOrDependencies;
     }
 
-    const [clientError, setClientError] = useState<any>();
-    const [serverError, setServerError] = useState<any>();
-    const [isClientLoading, setIsClientLoading] = useState(false);
-    const [isServerLoading, setIsServerLoading] = useState(false);
-    const [entities, setEntities] = useState<InstanceType<ModelType>[]>(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const memoizedOptions = useMemo(() => options, dependencies);
 
+    const queryId = useMemo(() => JSON.stringify(memoizedOptions), [memoizedOptions]);
+    const queryData = useTypeormSyncCache((state) => state.queries[queryId] ?? undefined);
+
+    const { clientError, serverError, loadingState, result: entities } = queryData ?? {};
     const initialValue = jsonInitialValue ? MultipleInitialResult.fromJSON(jsonInitialValue) : undefined;
 
-    const [runOnClient] = useState(initialValue === undefined);
+    const loadResult = useLoadResultFor(model, memoizedOptions, !initialValue);
 
     useEffect(() => {
-        let isCurrentRequest = true;
-        setClientError(undefined);
-        setServerError(undefined);
-        setIsClientLoading(false);
-        setIsServerLoading(true);
+        console.log('LOG-d useFind - loadResult');
+        loadResult();
+    }, [loadResult]);
 
-        Database.waitForInstance()
-            .then(async () => {
-                if (!isCurrentRequest) {
-                    return;
-                }
-
-                const repository = await waitForSyncRepository(model);
-                await repository.findAndSync({
-                    ...options,
-                    runOnClient,
-                    callback: (foundModels, fromServer) => {
-                        if (!isCurrentRequest) {
-                            return;
-                        }
-                        setEntities(foundModels);
-                        setIsClientLoading(false);
-                        if (fromServer) {
-                            setIsServerLoading(false);
-                        }
-                    },
-                    errorCallback: (error, fromServer) => {
-                        if (!isCurrentRequest) {
-                            return;
-                        }
-
-                        if (fromServer) {
-                            setServerError(error);
-                            setIsServerLoading(false);
-                            setIsClientLoading(false);
-                        } else {
-                            setClientError(error);
-                            setIsClientLoading(false);
-                        }
-                    },
-                });
-            })
-            .catch((e) => {
-                console.error(e);
-                if (!isCurrentRequest) {
-                    return;
-                }
-
-                setServerError(e);
-                setIsServerLoading(false);
-                setIsClientLoading(false);
-            });
-
-        return () => {
-            isCurrentRequest = false;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [model, runOnClient, ...dependencies]);
     return [
         entities ?? initialValue?.entities ?? emptyResult,
-        isServerLoading ? LoadingState.SERVER : isClientLoading ? LoadingState.CLIENT : LoadingState.NOTHING,
+        loadingState,
         serverError
             ? { type: ErrorType.SERVER, error: serverError }
             : clientError

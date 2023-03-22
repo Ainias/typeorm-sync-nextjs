@@ -5,5 +5,7 @@ export * from './hooks/LoadingState';
 export * from './hooks/useFind';
 export * from './hooks/useFindOne';
 export * from './hooks/useInitialResult';
+export * from './hooks/useLoadResultFor';
 export * from './hooks/useRepository';
 export * from './index';
+export * from './store/useTypeormSyncCache';
