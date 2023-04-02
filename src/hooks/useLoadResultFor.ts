@@ -3,6 +3,7 @@ import { useTypeormSyncCache } from '../store/useTypeormSyncCache';
 import { shallow } from 'zustand/shallow';
 import { FindManyOptions } from 'typeorm';
 import { Database, SyncModel, waitForSyncRepository } from '@ainias42/typeorm-sync';
+import { useReloadable } from '@ainias42/use-reload';
 
 export function useLoadResultFor<ModelType extends typeof SyncModel>(
     model: ModelType,
@@ -16,7 +17,7 @@ export function useLoadResultFor<ModelType extends typeof SyncModel>(
     );
     const runOnClient = useRef(initialRunOnClient);
 
-    return useCallback(async () => {
+    const reload = useCallback(async () => {
         const currentRunOnClient = runOnClient.current;
         runOnClient.current = true;
 
@@ -50,4 +51,7 @@ export function useLoadResultFor<ModelType extends typeof SyncModel>(
             setQueryError(queryId, e, true);
         }
     }, [initQuery, queryId, model, options, setQueryResult, setQueryError]);
+
+    const [reloadFunction] = useReloadable(queryId, reload);
+    return reloadFunction;
 }
