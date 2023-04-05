@@ -43,4 +43,5 @@ export declare function useRepository<T extends typeof SyncModel>(model: T): imp
     initialFindOne(options: import("typeorm").FindOneOptions<InstanceType<T>>): Promise<import("@ainias42/typeorm-sync").SingleInitialResult<T>>;
     initialFindOneBy(options: import("typeorm").FindOptionsWhere<InstanceType<T>> | import("typeorm").FindOptionsWhere<InstanceType<T>>[]): Promise<import("@ainias42/typeorm-sync").SingleInitialResult<T>>;
     initialFindOneById(id: number): Promise<import("@ainias42/typeorm-sync").SingleInitialResult<T>>;
+    getRelevantSyncOptions: (options?: import("typeorm").FindManyOptions<InstanceType<T>>) => import("@ainias42/typeorm-sync").SyncJsonOptions;
 };
