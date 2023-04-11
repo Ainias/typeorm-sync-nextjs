@@ -4,6 +4,7 @@ import { FindManyOptions } from 'typeorm';
 import { ErrorType } from './ErrorType';
 import { useTypeormSyncCache } from '../store/useTypeormSyncCache';
 import { useLoadResultFor } from './useLoadResultFor';
+import { useQueryId } from './useQueryId';
 
 // Empty result outside of hook => every time same array
 const emptyResult = [];
@@ -35,7 +36,7 @@ export function useFind<ModelType extends typeof SyncModel>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const memoizedOptions = useMemo(() => options, dependencies);
 
-    const queryId = useMemo(() => JSON.stringify(memoizedOptions), [memoizedOptions]);
+    const queryId = useQueryId(model, options);
     const queryData = useTypeormSyncCache((state) => state.queries[queryId] ?? undefined);
 
     const { clientError, serverError, loadingState, result: entities } = queryData ?? {};

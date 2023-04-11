@@ -11,8 +11,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { ErrorType } from './ErrorType';
 import { useTypeormSyncCache } from '../store/useTypeormSyncCache';
 import { useLoadResultFor } from './useLoadResultFor';
-
-// Empty result outside of hook => every time same array
+import { useQueryId } from './useQueryId';
 
 export function useInitialResult<ModelType extends typeof SyncModel>(
     jsonInitialValue: MultipleInitialResult<ModelType> | MultipleInitialResultJSON<ModelType>,
@@ -37,7 +36,7 @@ export function useInitialResult<ModelType extends typeof SyncModel>(
         return SingleInitialResult.fromJSON(jsonInitialValue);
     }, [jsonInitialValue]);
 
-    const queryId = useMemo(() => JSON.stringify(initialValue.query), [initialValue.query]);
+    const queryId = useQueryId(initialValue.model, initialValue.query);
     const queryData = useTypeormSyncCache((state) => state.queries[queryId] ?? undefined);
     const { clientError, serverError, loadingState, result: entities } = queryData ?? {};
 

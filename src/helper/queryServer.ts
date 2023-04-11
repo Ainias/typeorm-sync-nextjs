@@ -1,4 +1,4 @@
-import { Database, SyncHelper, SyncModel } from '@ainias42/typeorm-sync';
+import { SyncModel } from '@ainias42/typeorm-sync';
 import { FindManyOptions } from 'typeorm';
 
 export async function queryServer<Model extends typeof SyncModel>(

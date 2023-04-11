@@ -15,6 +15,7 @@ const react_1 = require("react");
 const ErrorType_1 = require("./ErrorType");
 const useTypeormSyncCache_1 = require("../store/useTypeormSyncCache");
 const useLoadResultFor_1 = require("./useLoadResultFor");
+const useQueryId_1 = require("./useQueryId");
 function useInitialResult(jsonInitialValue, outdatedAfterSeconds = 30) {
     var _a;
     const initialValue = (0, react_1.useMemo)(() => {
@@ -23,7 +24,7 @@ function useInitialResult(jsonInitialValue, outdatedAfterSeconds = 30) {
         }
         return typeorm_sync_1.SingleInitialResult.fromJSON(jsonInitialValue);
     }, [jsonInitialValue]);
-    const queryId = (0, react_1.useMemo)(() => JSON.stringify(initialValue.query), [initialValue.query]);
+    const queryId = (0, useQueryId_1.useQueryId)(initialValue.model, initialValue.query);
     const queryData = (0, useTypeormSyncCache_1.useTypeormSyncCache)((state) => { var _a; return (_a = state.queries[queryId]) !== null && _a !== void 0 ? _a : undefined; });
     const { clientError, serverError, loadingState, result: entities } = queryData !== null && queryData !== void 0 ? queryData : {};
     const saved = (0, react_1.useRef)(false);

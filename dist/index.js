@@ -22,6 +22,8 @@ __exportStar(require("./hooks/useFind"), exports);
 __exportStar(require("./hooks/useFindOne"), exports);
 __exportStar(require("./hooks/useInitialResult"), exports);
 __exportStar(require("./hooks/useLoadResultFor"), exports);
+__exportStar(require("./hooks/useQueryId"), exports);
 __exportStar(require("./hooks/useRepository"), exports);
+__exportStar(require("./index"), exports);
 __exportStar(require("./store/useTypeormSyncCache"), exports);
 //# sourceMappingURL=index.js.map

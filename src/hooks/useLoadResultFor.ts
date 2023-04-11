@@ -4,13 +4,14 @@ import { shallow } from 'zustand/shallow';
 import { FindManyOptions } from 'typeorm';
 import { Database, SyncModel, waitForSyncRepository } from '@ainias42/typeorm-sync';
 import { useReloadable } from '@ainias42/use-reload';
+import { useQueryId } from './useQueryId';
 
 export function useLoadResultFor<ModelType extends typeof SyncModel>(
     model: ModelType,
     options: FindManyOptions<InstanceType<ModelType>>,
     initialRunOnClient: boolean
 ) {
-    const queryId = useMemo(() => JSON.stringify(options), [options]);
+    const queryId = useQueryId(model, options);
     const [initQuery, setQueryResult, setQueryError] = useTypeormSyncCache(
         (state) => [state.initQuery, state.setQueryResult, state.setQueryError],
         shallow
@@ -29,8 +30,6 @@ export function useLoadResultFor<ModelType extends typeof SyncModel>(
             // Is already loading, do nothing
             return;
         }
-        console.log('LOG-d loadResult');
-
         initQuery(queryId);
 
         try {
@@ -40,6 +39,7 @@ export function useLoadResultFor<ModelType extends typeof SyncModel>(
                 ...options,
                 runOnClient: currentRunOnClient,
                 callback: (foundModels, fromServer) => {
+                    console.log('LOG-d reloading... 5', fromServer, foundModels);
                     setQueryResult(queryId, foundModels, fromServer);
                 },
                 errorCallback: (error, fromServer) => {
@@ -47,6 +47,7 @@ export function useLoadResultFor<ModelType extends typeof SyncModel>(
                 },
             });
         } catch (e) {
+            console.log('LOG-d reloading... 7');
             console.error(e);
             setQueryError(queryId, e, true);
         }
