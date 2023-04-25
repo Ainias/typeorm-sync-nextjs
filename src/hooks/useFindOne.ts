@@ -1,155 +1,124 @@
 import {
-    Database,
     SingleInitialResult,
     SingleInitialResultJSON,
     SyncModel,
     SyncOptions,
     waitForSyncRepository,
 } from '@ainias42/typeorm-sync';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FindOneOptions, FindOptionsWhere } from 'typeorm';
+import { useCallback, useRef } from 'react';
 import { LoadingState } from './LoadingState';
 import { ErrorType } from './ErrorType';
-import { useRepository } from './useRepository';
-// eslint-disable-next-line camelcase
-import { unstable_batchedUpdates } from 'react-dom';
 import { JSONValue } from '@ainias42/js-helper';
+import { useTypeormSyncCache } from '../store/useTypeormSyncCache';
+import { SyncFindOneOptions } from '../SyncFindOneOptions';
+import { useFindInternal } from './useFindInternal';
+import { shallow } from 'zustand/shallow';
+import { ReloadFunctionWithoutLoadingState } from '@ainias42/use-reload';
 
+export type UseFindOneOptions = { outdatedAfter: number };
+
+export type UseFindOneReturnType<ModelType extends typeof SyncModel> = Readonly<
+    [
+        InstanceType<ModelType> | null,
+        LoadingState,
+        (
+            | {
+                  type: ErrorType;
+                  error: any;
+              }
+            | undefined
+        ),
+        (newEntity: InstanceType<ModelType>, extraData?: any) => Promise<void>,
+        ReloadFunctionWithoutLoadingState<void>
+    ]
+>;
+
+export function useFindOne<ModelType extends typeof SyncModel>(
+    initialResult: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>,
+    options?: Partial<UseFindOneOptions>
+): UseFindOneReturnType<ModelType>;
+export function useFindOne<ModelType extends typeof SyncModel>(
+    initialResult: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>,
+    findOptions: () => SyncOptions<SyncFindOneOptions<InstanceType<ModelType>>>,
+    dependencies?: any[],
+    options?: Partial<UseFindOneOptions>
+): UseFindOneReturnType<ModelType>;
+export function useFindOne<ModelType extends typeof SyncModel>(
+    initialResult: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>,
+    findOptions?: SyncOptions<SyncFindOneOptions<InstanceType<ModelType>>>,
+    options?: Partial<UseFindOneOptions>
+): UseFindOneReturnType<ModelType>;
+
+export function useFindOne<ModelType extends typeof SyncModel>(
+    initialResult: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>,
+    id: number,
+    options?: Partial<UseFindOneOptions>
+): UseFindOneReturnType<ModelType>;
 export function useFindOne<ModelType extends typeof SyncModel>(
     model: ModelType,
     id: number,
-    jsonInitialValue?: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>
-): [
-    InstanceType<ModelType> | undefined | null,
-    LoadingState,
-    { type: ErrorType; error: any },
-    (entity: InstanceType<ModelType>, extraData?: JSONValue) => Promise<void>
-];
+    options?: Partial<UseFindOneOptions>
+): UseFindOneReturnType<ModelType>;
+
 export function useFindOne<ModelType extends typeof SyncModel>(
     model: ModelType,
-    options: SyncOptions<FindOneOptions<InstanceType<ModelType>>>,
-    jsonInitialValue?: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>,
-    dependencies?: any[]
-): [
-    InstanceType<ModelType> | undefined | null,
-    LoadingState,
-    { type: ErrorType; error: any },
-    (entity: InstanceType<ModelType>, extraData?: JSONValue) => Promise<void>
-];
+    findOptions: () => SyncOptions<SyncFindOneOptions<InstanceType<ModelType>>>,
+    dependencies?: any[],
+    options?: Partial<UseFindOneOptions>
+): UseFindOneReturnType<ModelType>;
 export function useFindOne<ModelType extends typeof SyncModel>(
     model: ModelType,
-    optionsOrId: SyncOptions<FindOneOptions<InstanceType<ModelType>>> | number,
-    jsonInitialValue?: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>,
-    dependencies: any[] = []
-) {
-    const [clientError, setClientError] = useState<any>();
-    const [serverError, setServerError] = useState<any>();
-    const [isClientLoading, setIsClientLoading] = useState(false);
-    const [isServerLoading, setIsServerLoading] = useState(false);
-    const [entity, setEntity] = useState<InstanceType<ModelType>>(undefined);
+    findOptions?: SyncOptions<SyncFindOneOptions<InstanceType<ModelType>>>,
+    options?: Partial<UseFindOneOptions>
+): UseFindOneReturnType<ModelType>;
 
-    const initialValue = jsonInitialValue ? SingleInitialResult.fromJSON(jsonInitialValue) : undefined;
+export function useFindOne<ModelType extends typeof SyncModel>(
+    modelOrInitialResult: ModelType | SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>,
+    findOptionsOrIdOrOptions?:
+        | SyncOptions<SyncFindOneOptions<InstanceType<ModelType>>>
+        | number
+        | Partial<UseFindOneOptions>
+        | (() => SyncOptions<SyncFindOneOptions<InstanceType<ModelType>>>),
+    dependenciesOrOptions?: any[] | Partial<UseFindOneOptions>,
+    options?: Partial<UseFindOneOptions>
+): UseFindOneReturnType<ModelType> {
+    const [result, loadingState, error, loadResult, { model, queryId }] = useFindInternal({
+        multiple: false,
+        modelOrInitialResult,
+        findOptionsOrIdOrOptions,
+        dependenciesOrOptions,
+        options,
+    });
 
-    const [runOnClient] = useState(initialValue === undefined);
-    const repository = useRepository(model);
-
-    const options: SyncOptions<FindOneOptions<InstanceType<ModelType>>> = useMemo(() => {
-        if (typeof optionsOrId === 'number') {
-            return {
-                where: {
-                    id: optionsOrId,
-                } as FindOptionsWhere<InstanceType<ModelType>>,
-            };
-        }
-        return optionsOrId;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [...dependencies, typeof optionsOrId === 'number' ? optionsOrId : undefined]);
-
-    const save = useCallback(
-        async (newEntity: InstanceType<ModelType>, extraData?: JSONValue) => {
-            setIsServerLoading(true);
-            const rep = await waitForSyncRepository(model);
-            await rep.saveAndSync(newEntity, { extraData, reload: false });
-            unstable_batchedUpdates(() => {
-                setIsServerLoading(false);
-                setEntity(newEntity);
-            });
-        },
-        [model]
+    const [setLoadingState, setQueryResult, setQueryError] = useTypeormSyncCache(
+        (state) => [state.setLoadingState, state.setQueryResult, state.setQueryError],
+        shallow
     );
 
-    useEffect(() => {
-        if (!repository) {
-            return undefined;
-        }
-
-        let isCurrentRequest = true;
-
-        setClientError(undefined);
-        setServerError(undefined);
-        setIsClientLoading(false);
-        setIsServerLoading(true);
-
-        Database.waitForInstance()
-            .then(() => {
-                if (!isCurrentRequest) {
+    const isSaving = useRef(false);
+    const save = useCallback(
+        async (newEntity: InstanceType<ModelType>, extraData?: JSONValue) => {
+            try {
+                if (isSaving.current) {
+                    console.log('LOG-d not saving, because save is already runnning');
                     return;
                 }
+                isSaving.current = true;
 
-                repository.findOneAndSync({
-                    ...options,
-                    runOnClient,
-                    callback: (foundModels, fromServer) => {
-                        if (!isCurrentRequest) {
-                            return;
-                        }
-                        setEntity(foundModels);
-                        setIsClientLoading(false);
-                        if (fromServer) {
-                            setIsServerLoading(false);
-                        }
-                    },
-                    errorCallback: (error, fromServer) => {
-                        if (!isCurrentRequest) {
-                            return;
-                        }
-                        if (fromServer) {
-                            setServerError(error);
-                            setIsServerLoading(false);
-                            setIsClientLoading(false);
-                        } else {
-                            setClientError(error);
-                            setIsClientLoading(false);
-                        }
-                    },
-                });
-            })
-            .catch((e) => {
-                console.error(e);
-                if (!isCurrentRequest) {
-                    return;
-                }
-                setServerError(e);
-                setIsServerLoading(false);
-                setIsClientLoading(false);
-            });
-        return () => {
-            isCurrentRequest = false;
-        };
-    }, [model, options, repository, runOnClient]);
+                setLoadingState(queryId, LoadingState.SERVER);
+                const rep = await waitForSyncRepository(model);
+                const savedEntity = await rep.saveAndSync(newEntity, { extraData, reload: false });
+                console.log('LOG-d settingQueryResult on client after save!', savedEntity);
+                setQueryResult(queryId, savedEntity, true);
+            } catch (e) {
+                console.error('LOG-d Got query error', e);
+                setQueryError(queryId, e, true, true);
+            } finally {
+                isSaving.current = false;
+            }
+        },
+        [model, queryId, setLoadingState, setQueryError, setQueryResult]
+    );
 
-    return [
-        entity !== undefined ? entity : initialValue?.entity,
-        isServerLoading
-            ? isClientLoading
-                ? LoadingState.CLIENT_AND_SERVER
-                : LoadingState.SERVER
-            : LoadingState.NOTHING,
-        serverError
-            ? { type: ErrorType.SERVER, error: serverError }
-            : clientError
-            ? { type: ErrorType.CLIENT, error: clientError }
-            : undefined,
-        save,
-    ] as const;
+    return [result as InstanceType<ModelType> | null, loadingState, error, save, loadResult] as const;
 }

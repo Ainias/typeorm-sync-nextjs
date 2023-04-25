@@ -1,61 +1,71 @@
-import { SyncModel, SyncOptions, MultipleInitialResult, MultipleInitialResultJSON } from '@ainias42/typeorm-sync';
-import { useEffect, useMemo } from 'react';
+import { MultipleInitialResult, MultipleInitialResultJSON, SyncModel, SyncOptions } from '@ainias42/typeorm-sync';
 import { FindManyOptions } from 'typeorm';
+import { SyncFindManyOptions } from '../SyncFindManyOptions';
+import { useFindInternal } from './useFindInternal';
+import { LoadingState } from './LoadingState';
+import { ReloadFunctionWithoutLoadingState } from '@ainias42/use-reload';
 import { ErrorType } from './ErrorType';
-import { useTypeormSyncCache } from '../store/useTypeormSyncCache';
-import { useLoadResultFor } from './useLoadResultFor';
-import { useQueryId } from './useQueryId';
 
 // Empty result outside of hook => every time same array
-const emptyResult = [];
+const emptyResult: any[] = [];
+
+export type UseFindOptions = { outdatedAfter: number };
+export type UseFindReturnType<ModelType extends typeof SyncModel> = Readonly<
+    [
+        InstanceType<ModelType>[],
+        LoadingState,
+        { type: ErrorType; error: any } | undefined,
+        ReloadFunctionWithoutLoadingState<void>
+    ]
+>;
 
 export function useFind<ModelType extends typeof SyncModel>(
     model: ModelType,
-    options?: SyncOptions<FindManyOptions<InstanceType<ModelType>>>,
-    dependencies?: any[]
-);
-
-/** @deprecated useFind with jsonInitialValue is deprecated. Use 'useInitialResult' instead */
+    findOptions: () => SyncOptions<SyncFindManyOptions<InstanceType<ModelType>>>,
+    dependencies?: any[],
+    options?: Partial<UseFindOptions>
+): UseFindReturnType<ModelType>;
 export function useFind<ModelType extends typeof SyncModel>(
     model: ModelType,
-    options?: SyncOptions<FindManyOptions<InstanceType<ModelType>>>,
-    jsonInitialValue?: MultipleInitialResult<ModelType> | MultipleInitialResultJSON<ModelType>,
-    dependencies?: any[]
-);
+    findOptions?: SyncOptions<SyncFindManyOptions<InstanceType<ModelType>>>,
+    options?: Partial<UseFindOptions>
+): UseFindReturnType<ModelType>;
 export function useFind<ModelType extends typeof SyncModel>(
     model: ModelType,
-    options: SyncOptions<FindManyOptions<InstanceType<ModelType>>> = {},
-    jsonInitialValueOrDependencies?: MultipleInitialResult<ModelType> | MultipleInitialResultJSON<ModelType> | any[],
-    dependencies: any[] = []
-) {
-    const jsonInitialValue = Array.isArray(jsonInitialValueOrDependencies) ? undefined : jsonInitialValueOrDependencies;
-    if (Array.isArray(jsonInitialValueOrDependencies)) {
-        dependencies = jsonInitialValueOrDependencies;
-    }
+    options?: Partial<UseFindOptions>
+): UseFindReturnType<ModelType>;
+export function useFind<ModelType extends typeof SyncModel>(
+    initialResult: MultipleInitialResult<ModelType> | MultipleInitialResultJSON<ModelType>,
+    findOptions: () => SyncOptions<FindManyOptions<InstanceType<ModelType>>>,
+    dependencies?: any[],
+    options?: Partial<UseFindOptions>
+): UseFindReturnType<ModelType>;
+export function useFind<ModelType extends typeof SyncModel>(
+    initialResult: MultipleInitialResult<ModelType> | MultipleInitialResultJSON<ModelType>,
+    findOptions?: SyncOptions<SyncFindManyOptions<InstanceType<ModelType>>>,
+    options?: Partial<UseFindOptions>
+): UseFindReturnType<ModelType>;
+export function useFind<ModelType extends typeof SyncModel>(
+    initialResult: MultipleInitialResult<ModelType> | MultipleInitialResultJSON<ModelType>,
+    options?: Partial<UseFindOptions>
+): UseFindReturnType<ModelType>;
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const memoizedOptions = useMemo(() => options, dependencies);
+export function useFind<ModelType extends typeof SyncModel>(
+    modelOrInitialResult: ModelType | MultipleInitialResult<ModelType> | MultipleInitialResultJSON<ModelType>,
+    findOptionsOrOptions?:
+        | SyncOptions<SyncFindManyOptions<InstanceType<ModelType>>>
+        | (() => SyncOptions<FindManyOptions<InstanceType<ModelType>>>)
+        | Partial<UseFindOptions>,
+    dependenciesOrOptions?: Partial<UseFindOptions> | any[],
+    options?: Partial<UseFindOptions>
+): UseFindReturnType<ModelType> {
+    const [result, loadingState, error, loadResult] = useFindInternal({
+        multiple: true,
+        modelOrInitialResult,
+        findOptionsOrIdOrOptions: findOptionsOrOptions,
+        dependenciesOrOptions,
+        options,
+    });
 
-    const queryId = useQueryId(model, options);
-    const queryData = useTypeormSyncCache((state) => state.queries[queryId] ?? undefined);
-
-    const { clientError, serverError, loadingState, result: entities } = queryData ?? {};
-    const initialValue = jsonInitialValue ? MultipleInitialResult.fromJSON(jsonInitialValue) : undefined;
-
-    const loadResult = useLoadResultFor(model, memoizedOptions, !initialValue);
-
-    useEffect(() => {
-        console.log('LOG-d useFind - loadResult');
-        loadResult();
-    }, [loadResult]);
-
-    return [
-        entities ?? initialValue?.entities ?? emptyResult,
-        loadingState,
-        serverError
-            ? { type: ErrorType.SERVER, error: serverError }
-            : clientError
-            ? { type: ErrorType.CLIENT, error: clientError }
-            : undefined,
-    ] as const;
+    return [(result ?? emptyResult) as InstanceType<ModelType>[], loadingState, error, loadResult];
 }

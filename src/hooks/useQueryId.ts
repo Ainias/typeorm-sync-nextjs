@@ -4,7 +4,7 @@ import { FindManyOptions } from 'typeorm';
 
 export function useQueryId<ModelType extends typeof SyncModel>(
     model: ModelType,
-    options: FindManyOptions<InstanceType<ModelType>>
+    options?: FindManyOptions<InstanceType<ModelType>>
 ) {
-    return useMemo(() => `${Database.getModelIdFor(model)}-${JSON.stringify(options)}`, [model, options]);
+    return useMemo(() => `${Database.getModelIdFor(model)}-${JSON.stringify(options ?? {})}`, [model, options]);
 }

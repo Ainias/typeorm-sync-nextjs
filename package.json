@@ -40,11 +40,11 @@
     "eslint-plugin-react": "^7.29.4",
     "prettier": "^2.6.1",
     "reflect-metadata": "^0.1.13",
-    "typescript": "^4.6.3"
+    "typescript": "^5.0.4"
   },
   "dependencies": {
     "@ainias42/js-helper": ">=0.8.2",
-    "@ainias42/typeorm-sync": ">=0.1.1",
+    "@ainias42/typeorm-sync": ">=0.2.1",
     "@ainias42/use-reload": ">=0.0.3",
     "zustand": "^4.3.6"
   }

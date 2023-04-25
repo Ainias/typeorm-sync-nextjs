@@ -13,104 +13,41 @@ exports.useFindOne = void 0;
 const typeorm_sync_1 = require("@ainias42/typeorm-sync");
 const react_1 = require("react");
 const LoadingState_1 = require("./LoadingState");
-const ErrorType_1 = require("./ErrorType");
-const useRepository_1 = require("./useRepository");
-// eslint-disable-next-line camelcase
-const react_dom_1 = require("react-dom");
-function useFindOne(model, optionsOrId, jsonInitialValue, dependencies = []) {
-    const [clientError, setClientError] = (0, react_1.useState)();
-    const [serverError, setServerError] = (0, react_1.useState)();
-    const [isClientLoading, setIsClientLoading] = (0, react_1.useState)(false);
-    const [isServerLoading, setIsServerLoading] = (0, react_1.useState)(false);
-    const [entity, setEntity] = (0, react_1.useState)(undefined);
-    const initialValue = jsonInitialValue ? typeorm_sync_1.SingleInitialResult.fromJSON(jsonInitialValue) : undefined;
-    const [runOnClient] = (0, react_1.useState)(initialValue === undefined);
-    const repository = (0, useRepository_1.useRepository)(model);
-    const options = (0, react_1.useMemo)(() => {
-        if (typeof optionsOrId === 'number') {
-            return {
-                where: {
-                    id: optionsOrId,
-                },
-            };
-        }
-        return optionsOrId;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [...dependencies, typeof optionsOrId === 'number' ? optionsOrId : undefined]);
+const useTypeormSyncCache_1 = require("../store/useTypeormSyncCache");
+const useFindInternal_1 = require("./useFindInternal");
+const shallow_1 = require("zustand/shallow");
+function useFindOne(modelOrInitialResult, findOptionsOrIdOrOptions, dependenciesOrOptions, options) {
+    const [result, loadingState, error, loadResult, { model, queryId }] = (0, useFindInternal_1.useFindInternal)({
+        multiple: false,
+        modelOrInitialResult,
+        findOptionsOrIdOrOptions,
+        dependenciesOrOptions,
+        options,
+    });
+    const [setLoadingState, setQueryResult, setQueryError] = (0, useTypeormSyncCache_1.useTypeormSyncCache)((state) => [state.setLoadingState, state.setQueryResult, state.setQueryError], shallow_1.shallow);
+    const isSaving = (0, react_1.useRef)(false);
     const save = (0, react_1.useCallback)((newEntity, extraData) => __awaiter(this, void 0, void 0, function* () {
-        setIsServerLoading(true);
-        const rep = yield (0, typeorm_sync_1.waitForSyncRepository)(model);
-        yield rep.saveAndSync(newEntity, { extraData, reload: false });
-        (0, react_dom_1.unstable_batchedUpdates)(() => {
-            setIsServerLoading(false);
-            setEntity(newEntity);
-        });
-    }), [model]);
-    (0, react_1.useEffect)(() => {
-        if (!repository) {
-            return undefined;
+        try {
+            if (isSaving.current) {
+                console.log('LOG-d not saving, because save is already runnning');
+                return;
+            }
+            isSaving.current = true;
+            setLoadingState(queryId, LoadingState_1.LoadingState.SERVER);
+            const rep = yield (0, typeorm_sync_1.waitForSyncRepository)(model);
+            const savedEntity = yield rep.saveAndSync(newEntity, { extraData, reload: false });
+            console.log('LOG-d settingQueryResult on client after save!', savedEntity);
+            setQueryResult(queryId, savedEntity, true);
         }
-        let isCurrentRequest = true;
-        setClientError(undefined);
-        setServerError(undefined);
-        setIsClientLoading(false);
-        setIsServerLoading(true);
-        typeorm_sync_1.Database.waitForInstance()
-            .then(() => {
-            if (!isCurrentRequest) {
-                return;
-            }
-            repository.findOneAndSync(Object.assign(Object.assign({}, options), { runOnClient, callback: (foundModels, fromServer) => {
-                    if (!isCurrentRequest) {
-                        return;
-                    }
-                    setEntity(foundModels);
-                    setIsClientLoading(false);
-                    if (fromServer) {
-                        setIsServerLoading(false);
-                    }
-                }, errorCallback: (error, fromServer) => {
-                    if (!isCurrentRequest) {
-                        return;
-                    }
-                    if (fromServer) {
-                        setServerError(error);
-                        setIsServerLoading(false);
-                        setIsClientLoading(false);
-                    }
-                    else {
-                        setClientError(error);
-                        setIsClientLoading(false);
-                    }
-                } }));
-        })
-            .catch((e) => {
-            console.error(e);
-            if (!isCurrentRequest) {
-                return;
-            }
-            setServerError(e);
-            setIsServerLoading(false);
-            setIsClientLoading(false);
-        });
-        return () => {
-            isCurrentRequest = false;
-        };
-    }, [model, options, repository, runOnClient]);
-    return [
-        entity !== undefined ? entity : initialValue === null || initialValue === void 0 ? void 0 : initialValue.entity,
-        isServerLoading
-            ? isClientLoading
-                ? LoadingState_1.LoadingState.CLIENT_AND_SERVER
-                : LoadingState_1.LoadingState.SERVER
-            : LoadingState_1.LoadingState.NOTHING,
-        serverError
-            ? { type: ErrorType_1.ErrorType.SERVER, error: serverError }
-            : clientError
-                ? { type: ErrorType_1.ErrorType.CLIENT, error: clientError }
-                : undefined,
-        save,
-    ];
+        catch (e) {
+            console.error('LOG-d Got query error', e);
+            setQueryError(queryId, e, true, true);
+        }
+        finally {
+            isSaving.current = false;
+        }
+    }), [model, queryId, setLoadingState, setQueryError, setQueryResult]);
+    return [result, loadingState, error, save, loadResult];
 }
 exports.useFindOne = useFindOne;
 //# sourceMappingURL=useFindOne.js.map

@@ -55,7 +55,7 @@ function useInitialResult(jsonInitialValue, outdatedAfterSeconds = 30) {
     if (serverError) {
         error = { type: ErrorType_1.ErrorType.SERVER, error: serverError };
     }
-    else {
+    else if (clientError) {
         error = { type: ErrorType_1.ErrorType.CLIENT, error: clientError };
     }
     return [resultEntities, loadingState, error, loadResult];
