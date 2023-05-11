@@ -120,6 +120,7 @@ export function useFindInternal<ModelType extends typeof SyncModel>(
         }
     }, [initialResult, isOutdated, queryId, setQueryResult]);
 
+    // TODO reload when query changes
     useEffect(() => {
         if (isOutdated) {
             loadResult();

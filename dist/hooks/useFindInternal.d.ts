@@ -23,7 +23,7 @@ type FindManyParams<ModelType extends typeof SyncModel> = {
 export declare function useFindInternal<ModelType extends typeof SyncModel>(params: FindManyParams<ModelType> | FindOneParams<ModelType>): readonly [InstanceType<ModelType> | InstanceType<ModelType>[] | null, import("./LoadingState").LoadingState, {
     type: ErrorType;
     error: any;
-} | undefined, any, {
+} | undefined, import("@ainias42/use-reload").ReloadFunctionWithoutLoadingState<void>, {
     readonly model: ModelType;
     readonly queryId: string;
 }];

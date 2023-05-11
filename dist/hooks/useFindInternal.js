@@ -37,7 +37,9 @@ function useFindInternal(params) {
     }, [initialResult, modelOrInitialResult]);
     const dependencies = Array.isArray(dependenciesOrOptions) ? dependenciesOrOptions : [];
     const query = (0, react_1.useMemo)(() => {
+        console.log('LOG-d recalculate query');
         if (typeof findOptionsOrIdOrOptions === 'function') {
+            console.log('LOG-d findOptionsOrIdOrOptions as function');
             return findOptionsOrIdOrOptions();
         }
         if (typeof findOptionsOrIdOrOptions === 'number') {
