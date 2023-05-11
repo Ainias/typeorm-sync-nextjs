@@ -13,5 +13,4 @@ export * from './hooks/useFindOne';
 export * from './hooks/useLoadResultFor';
 export * from './hooks/useQueryId';
 export * from './hooks/useRepository';
-export * from './index';
 export * from './store/useTypeormSyncCache';
