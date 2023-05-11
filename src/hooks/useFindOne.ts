@@ -90,6 +90,8 @@ export function useFindOne<ModelType extends typeof SyncModel>(
         options,
     });
 
+    console.log('LOG-d useFindOne result', result);
+
     const [setLoadingState, setQueryResult, setQueryError] = useTypeormSyncCache(
         (state) => [state.setLoadingState, state.setQueryResult, state.setQueryError],
         shallow
@@ -109,7 +111,7 @@ export function useFindOne<ModelType extends typeof SyncModel>(
                 const rep = await waitForSyncRepository(model);
                 const savedEntity = await rep.saveAndSync(newEntity, { extraData, reload: false });
                 console.log('LOG-d settingQueryResult on client after save!', savedEntity);
-                setQueryResult(queryId, savedEntity, true);
+                setQueryResult(queryId, [savedEntity], true);
             } catch (e) {
                 console.error('LOG-d Got query error', e);
                 setQueryError(queryId, e, true, true);

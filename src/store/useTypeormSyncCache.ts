@@ -68,7 +68,7 @@ const actionsGenerator = (set: SetState, get: GetState) => ({
         const { queries } = get();
         const query = queries[id];
 
-        console.log('LOG-d setting queryResult', isServerResult);
+        console.log('LOG-d setting queryResult', isServerResult, result);
 
         const newQuery: QueryResult<any> = {
             ...(query ?? getInitialQuery()),

@@ -93,6 +93,8 @@ export function useFindInternal<ModelType extends typeof SyncModel>(
 
     const queryId = useQueryId(model, query);
     const queryData: QueryResult<ModelType> = useTypeormSyncCache((state) => state.queries[queryId] ?? undefined);
+    console.log('LOG-d useFindInternal queryData', queryData);
+
     const setQueryResult = useTypeormSyncCache((state) => state.setQueryResult);
 
     const saved = useRef(false);
