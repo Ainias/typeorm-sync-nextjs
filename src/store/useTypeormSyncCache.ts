@@ -68,8 +68,6 @@ const actionsGenerator = (set: SetState, get: GetState) => ({
         const { queries } = get();
         const query = queries[id];
 
-        console.log('LOG-d setting queryResult', isServerResult, result);
-
         const newQuery: QueryResult<any> = {
             ...(query ?? getInitialQuery()),
             loadingState:
@@ -133,7 +131,6 @@ const actionsGenerator = (set: SetState, get: GetState) => ({
             }
         }
 
-        console.log('LOG-d restoring result?', restoreBackup, query.backupResult);
         if (restoreBackup && query.backupResult) {
             query.result = SyncHelper.clone(query.backupResult);
         }

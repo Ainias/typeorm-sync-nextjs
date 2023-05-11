@@ -59,7 +59,6 @@ function useFindInternal(params) {
             : {});
     const queryId = (0, useQueryId_1.useQueryId)(model, query);
     const queryData = (0, useTypeormSyncCache_1.useTypeormSyncCache)((state) => { var _a; return (_a = state.queries[queryId]) !== null && _a !== void 0 ? _a : undefined; });
-    console.log('LOG-d useFindInternal queryData', queryData);
     const setQueryResult = (0, useTypeormSyncCache_1.useTypeormSyncCache)((state) => state.setQueryResult);
     const saved = (0, react_1.useRef)(false);
     const lastQueryTimestamp = (_a = queryData === null || queryData === void 0 ? void 0 : queryData.lastQueryTimestamp) !== null && _a !== void 0 ? _a : initialLastQueryTimestamp;

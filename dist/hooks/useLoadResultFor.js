@@ -40,7 +40,6 @@ function useLoadResultFor(model, options, initialRunOnClient) {
             // Is already loading, do nothing
             return;
         }
-        console.log('LOG-d reload');
         initQuery(queryId);
         try {
             yield typeorm_sync_1.Database.waitForInstance();
@@ -80,7 +79,6 @@ function useLoadResultFor(model, options, initialRunOnClient) {
     }, [isClientDb, model, options === null || options === void 0 ? void 0 : options.relations, setTriggeringEntities, queryId]);
     (0, react_1.useMemo)(() => {
         setClientOnlyReload(queryId, () => {
-            console.log('LOG-d trigger client-only reload');
             return reload(true);
         });
     }, [queryId, reload, setClientOnlyReload]);

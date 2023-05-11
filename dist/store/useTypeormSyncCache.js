@@ -40,7 +40,6 @@ const actionsGenerator = (set, get) => ({
     setQueryResult(id, result, isServerResult) {
         const { queries } = get();
         const query = queries[id];
-        console.log('LOG-d setting queryResult', isServerResult, result);
         const newQuery = Object.assign(Object.assign({}, (query !== null && query !== void 0 ? query : getInitialQuery())), { loadingState: isServerResult || (query === null || query === void 0 ? void 0 : query.loadingState) === LoadingState_1.LoadingState.NOTHING
                 ? LoadingState_1.LoadingState.NOTHING
                 : LoadingState_1.LoadingState.SERVER, result, backupResult: typeorm_sync_1.SyncHelper.clone(result), isServerResult });
@@ -95,7 +94,6 @@ const actionsGenerator = (set, get) => ({
                 query.loadingState = LoadingState_1.LoadingState.SERVER;
             }
         }
-        console.log('LOG-d restoring result?', restoreBackup, query.backupResult);
         if (restoreBackup && query.backupResult) {
             query.result = typeorm_sync_1.SyncHelper.clone(query.backupResult);
         }

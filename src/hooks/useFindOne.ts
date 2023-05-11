@@ -90,8 +90,6 @@ export function useFindOne<ModelType extends typeof SyncModel>(
         options,
     });
 
-    console.log('LOG-d useFindOne result', result);
-
     const [setLoadingState, setQueryResult, setQueryError] = useTypeormSyncCache(
         (state) => [state.setLoadingState, state.setQueryResult, state.setQueryError],
         shallow
@@ -102,7 +100,6 @@ export function useFindOne<ModelType extends typeof SyncModel>(
         async (newEntity: InstanceType<ModelType>, extraData?: JSONValue) => {
             try {
                 if (isSaving.current) {
-                    console.log('LOG-d not saving, because save is already runnning');
                     return;
                 }
                 isSaving.current = true;
@@ -110,10 +107,9 @@ export function useFindOne<ModelType extends typeof SyncModel>(
                 setLoadingState(queryId, LoadingState.SERVER);
                 const rep = await waitForSyncRepository(model);
                 const savedEntity = await rep.saveAndSync(newEntity, { extraData, reload: false });
-                console.log('LOG-d settingQueryResult on client after save!', savedEntity);
                 setQueryResult(queryId, [savedEntity], true);
             } catch (e) {
-                console.error('LOG-d Got query error', e);
+                console.error('Got query error', e);
                 setQueryError(queryId, e, true, true);
             } finally {
                 isSaving.current = false;

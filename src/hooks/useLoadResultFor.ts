@@ -39,7 +39,6 @@ export function useLoadResultFor<ModelType extends typeof SyncModel>(
                 return;
             }
 
-            console.log('LOG-d reload');
             initQuery(queryId);
 
             try {
@@ -89,7 +88,6 @@ export function useLoadResultFor<ModelType extends typeof SyncModel>(
 
     useMemo(() => {
         setClientOnlyReload(queryId, () => {
-            console.log('LOG-d trigger client-only reload');
             return reload(true);
         });
     }, [queryId, reload, setClientOnlyReload]);

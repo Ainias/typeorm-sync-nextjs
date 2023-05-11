@@ -24,24 +24,21 @@ function useFindOne(modelOrInitialResult, findOptionsOrIdOrOptions, dependencies
         dependenciesOrOptions,
         options,
     });
-    console.log('LOG-d useFindOne result', result);
     const [setLoadingState, setQueryResult, setQueryError] = (0, useTypeormSyncCache_1.useTypeormSyncCache)((state) => [state.setLoadingState, state.setQueryResult, state.setQueryError], shallow_1.shallow);
     const isSaving = (0, react_1.useRef)(false);
     const save = (0, react_1.useCallback)((newEntity, extraData) => __awaiter(this, void 0, void 0, function* () {
         try {
             if (isSaving.current) {
-                console.log('LOG-d not saving, because save is already runnning');
                 return;
             }
             isSaving.current = true;
             setLoadingState(queryId, LoadingState_1.LoadingState.SERVER);
             const rep = yield (0, typeorm_sync_1.waitForSyncRepository)(model);
             const savedEntity = yield rep.saveAndSync(newEntity, { extraData, reload: false });
-            console.log('LOG-d settingQueryResult on client after save!', savedEntity);
             setQueryResult(queryId, [savedEntity], true);
         }
         catch (e) {
-            console.error('LOG-d Got query error', e);
+            console.error('Got query error', e);
             setQueryError(queryId, e, true, true);
         }
         finally {
