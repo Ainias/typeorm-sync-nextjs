@@ -37,9 +37,7 @@ function useFindInternal(params) {
     }, [initialResult, modelOrInitialResult]);
     const dependencies = Array.isArray(dependenciesOrOptions) ? dependenciesOrOptions : [];
     const query = (0, react_1.useMemo)(() => {
-        console.log('LOG-d recalculate query');
         if (typeof findOptionsOrIdOrOptions === 'function') {
-            console.log('LOG-d findOptionsOrIdOrOptions as function');
             return findOptionsOrIdOrOptions();
         }
         if (typeof findOptionsOrIdOrOptions === 'number') {
@@ -78,6 +76,7 @@ function useFindInternal(params) {
             setQueryResult(queryId, 'entities' in initialResult ? initialResult.entities : [initialResult.entity], initialResult.isServer);
         }
     }, [initialResult, isOutdated, queryId, setQueryResult]);
+    // TODO reload when query changes
     (0, react_1.useEffect)(() => {
         if (isOutdated) {
             loadResult();
