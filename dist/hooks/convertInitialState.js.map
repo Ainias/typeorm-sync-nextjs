@@ -1,1 +1,0 @@
-{"version":3,"file":"convertInitialState.js","sourceRoot":"","sources":["../../src/hooks/convertInitialState.ts"],"names":[],"mappings":";;;AAcA,SAAgB,mBAAmB,CAC/B,KAAgB,EAChB,YAA6E;IAE7E,IAAI,YAAY,KAAK,SAAS,EAAE;QAC5B,OAAO,SAAS,CAAC;KACpB;IACD,oCAAoC;IAEpC,OAAO,YAAY,CAAC;AACxB,CAAC;AAVD,kDAUC"}

@@ -1,4 +1,5 @@
 import {
+    Database,
     SingleInitialResult,
     SingleInitialResultJSON,
     SyncModel,
@@ -6,32 +7,20 @@ import {
     waitForSyncRepository,
 } from '@ainias42/typeorm-sync';
 import { useCallback, useRef } from 'react';
-import { LoadingState } from './LoadingState';
-import { ErrorType } from './ErrorType';
 import { JSONValue } from '@ainias42/js-helper';
-import { useTypeormSyncCache } from '../store/useTypeormSyncCache';
 import { SyncFindOneOptions } from '../SyncFindOneOptions';
-import { useFindInternal } from './useFindInternal';
-import { shallow } from 'zustand/shallow';
-import { ReloadFunctionWithoutLoadingState } from '@ainias42/use-reload';
+import { useFindInternal, UseFindInternalReturnType } from './useFindInternal';
+import { updateResult } from './fetchQuery/updateResult';
 
 export type UseFindOneOptions = { outdatedAfter: number };
 
-export type UseFindOneReturnType<ModelType extends typeof SyncModel> = Readonly<
-    [
-        InstanceType<ModelType> | null,
-        LoadingState,
-        (
-            | {
-                  type: ErrorType;
-                  error: any;
-              }
-            | undefined
-        ),
-        (newEntity: InstanceType<ModelType>, extraData?: any) => Promise<void>,
-        ReloadFunctionWithoutLoadingState<void>
-    ]
->;
+export type UseFindOneReturnType<ModelType extends typeof SyncModel> = Omit<
+    UseFindInternalReturnType<ModelType>,
+    'entities'
+> & {
+    entity: InstanceType<ModelType> | undefined;
+    save: (newEntity: InstanceType<ModelType>, extraData?: JSONValue) => Promise<void>;
+};
 
 export function useFindOne<ModelType extends typeof SyncModel>(
     initialResult: SingleInitialResult<ModelType> | SingleInitialResultJSON<ModelType>,
@@ -82,7 +71,7 @@ export function useFindOne<ModelType extends typeof SyncModel>(
     dependenciesOrOptions?: any[] | Partial<UseFindOneOptions>,
     options?: Partial<UseFindOneOptions>
 ): UseFindOneReturnType<ModelType> {
-    const [result, loadingState, error, loadResult, { model, queryId }] = useFindInternal({
+    const { entities, queryKey, ...other } = useFindInternal({
         multiple: false,
         modelOrInitialResult,
         findOptionsOrIdOrOptions,
@@ -90,33 +79,40 @@ export function useFindOne<ModelType extends typeof SyncModel>(
         options,
     });
 
-    const [setLoadingState, setQueryResult, setQueryError] = useTypeormSyncCache(
-        (state) => [state.setLoadingState, state.setQueryResult, state.setQueryError],
-        shallow
-    );
-
     const isSaving = useRef(false);
     const save = useCallback(
         async (newEntity: InstanceType<ModelType>, extraData?: JSONValue) => {
             try {
+                const model = Database.getModelForId(queryKey[0]) as ModelType;
+
                 if (isSaving.current) {
                     return;
                 }
                 isSaving.current = true;
-
-                setLoadingState(queryId, LoadingState.SERVER);
                 const rep = await waitForSyncRepository(model);
                 const savedEntity = await rep.saveAndSync(newEntity, { extraData, reload: false });
-                setQueryResult(queryId, [savedEntity], true);
+                updateResult(queryKey, {
+                    entities: [savedEntity],
+                    isServerResult: false,
+                    clientError: undefined,
+                    isClientLoading: false,
+                });
             } catch (e) {
                 console.error('Got query error', e);
-                setQueryError(queryId, e, true, true);
+                updateResult(queryKey, {
+                    clientError: e,
+                    isClientLoading: false,
+                });
             } finally {
                 isSaving.current = false;
             }
         },
-        [model, queryId, setLoadingState, setQueryError, setQueryResult]
+        [queryKey]
     );
-
-    return [result as InstanceType<ModelType> | null, loadingState, error, save, loadResult] as const;
+    return {
+        entity: entities?.[0],
+        save,
+        queryKey,
+        ...other,
+    };
 }

@@ -13,10 +13,15 @@ import { FindManyOptions } from 'typeorm';
 import { SyncFindOneOptions } from '../SyncFindOneOptions';
 import { useEffect, useMemo, useRef } from 'react';
 import { isInitialResult } from '../helper/isInitialResult';
-import { useQueryId } from './useQueryId';
-import { QueryResult, useTypeormSyncCache } from '../store/useTypeormSyncCache';
-import { useLoadResultFor } from './useLoadResultFor';
 import { ErrorType } from './ErrorType';
+import { useQuery } from '@tanstack/react-query';
+import { fetchQuery, TypeormSyncKey } from './fetchQuery/fetchQuery';
+import { TypeormSyncResult } from './fetchQuery/TypeormSyncResult';
+import { updateResult } from './fetchQuery/updateResult';
+import { LoadingState } from './LoadingState';
+import { getFlatRelationModels } from '../helper/getFlatRelationModels';
+import { useTypeormSyncCache } from '../store/useTypeormSyncCache';
+import { queryContext } from '../QueryClient';
 
 type OtherOptions = { outdatedAfter: number };
 
@@ -42,6 +47,8 @@ type FindManyParams<ModelType extends typeof SyncModel> = {
     options?: Partial<OtherOptions>;
     multiple: true;
 };
+
+const emptyResult: any[] = [];
 
 export function useFindInternal<ModelType extends typeof SyncModel>(
     params: FindManyParams<ModelType> | FindOneParams<ModelType>
@@ -91,18 +98,42 @@ export function useFindInternal<ModelType extends typeof SyncModel>(
             ? findOptionsOrIdOrOptions
             : {});
 
-    const queryId = useQueryId(model, query);
-    const queryData: QueryResult<ModelType> = useTypeormSyncCache((state) => state.queries[queryId] ?? undefined);
+    const initialData = useMemo(() => {
+        if (initialResult) {
+            const entities =
+                'entities' in initialResult
+                    ? initialResult.entities
+                    : initialResult.entity
+                    ? [initialResult.entity]
+                    : [];
+            return {
+                entities,
+                isServerResult: initialResult.isServer,
+                clientError: undefined,
+                serverError: undefined,
+                isServerLoading: false,
+                isClientLoading: false,
+            } satisfies TypeormSyncResult<InstanceType<ModelType>>;
+        }
+        return undefined;
+    }, [initialResult]);
 
-    const setQueryResult = useTypeormSyncCache((state) => state.setQueryResult);
+    const queryKey = useMemo(() => [Database.getModelIdFor(model), query] as TypeormSyncKey<ModelType>, [model, query]);
 
+    const queryData = useQuery({
+        queryKey,
+        queryFn: ({ queryKey: currentQueryKey }) => fetchQuery(currentQueryKey),
+        keepPreviousData: true,
+        initialDataUpdatedAt: initialLastQueryTimestamp,
+        initialData,
+        staleTime: outdatedAfter * 1000,
+        context: queryContext,
+    });
+    const { data, error } = queryData;
+
+    // Save result to indexedDB
+    const isOutdated = Date.now() - initialLastQueryTimestamp > outdatedAfter * 1000;
     const saved = useRef(false);
-    const lastQueryTimestamp = queryData?.lastQueryTimestamp ?? initialLastQueryTimestamp;
-
-    const isOutdated = new Date().getTime() - lastQueryTimestamp >= outdatedAfter * 1000;
-
-    const loadResult = useLoadResultFor(model, query as SyncFindOneOptions<InstanceType<ModelType>>, !initialResult);
-
     useEffect(() => {
         if (!saved.current && !isOutdated && initialResult) {
             saved.current = true;
@@ -112,32 +143,64 @@ export function useFindInternal<ModelType extends typeof SyncModel>(
                     await repository.saveInitialResult(initialResult as SingleInitialResult<ModelType>);
                 })
                 .catch((e) => console.error('useFindInternal - Error - saveResult: ', e));
-            setQueryResult(
-                queryId,
-                'entities' in initialResult ? initialResult.entities : [initialResult.entity],
-                initialResult.isServer
-            );
+
+            // Data is only from client, initialData is inside saved query. Server is not loaded => Reload data from server manually
+            if (!initialResult.isServer) {
+                fetchQuery(queryKey, false, true).then((result) => updateResult(queryKey, result));
+            }
         }
-    }, [initialResult, isOutdated, queryId, setQueryResult]);
+    }, [initialResult, isOutdated, queryKey]);
 
-    // TODO reload when query changes
-    useEffect(() => {
-        if (isOutdated) {
-            loadResult();
+    const setTriggeringEntities = useTypeormSyncCache((state) => state.setTriggeringEntities);
+    const run = useRef(0);
+    useMemo(() => {
+        run.current++;
+        const currentRun = run.current;
+
+        if (Database.isClientDatabase()) {
+            // TODO on unregister remove listeners(?)
+            Database.waitForInstance()
+                .then((instance) => instance.getConnectionPromise())
+                .then(() => {
+                    if (run.current !== currentRun) {
+                        return;
+                    }
+                    const triggeringModels = getFlatRelationModels(model, query?.relations as string[]);
+                    triggeringModels.push(model);
+                    setTriggeringEntities(queryKey, triggeringModels);
+                });
         }
-    }, [isOutdated, loadResult]);
+    }, [model, query?.relations, setTriggeringEntities, queryKey]);
 
-    const { clientError, serverError, loadingState, result: entities } = queryData ?? {};
-    const resultEntities = ((multiple ? entities : entities?.[0]) ??
-        initialResult?.[(multiple ? 'entities' : 'entity') as keyof typeof initialResult] ??
-        null) as InstanceType<ModelType>[] | InstanceType<ModelType> | null;
+    const { clientError, serverError, entities, isClientLoading, isServerLoading } = data ?? {};
 
-    let error;
-    if (serverError) {
-        error = { type: ErrorType.SERVER, error: serverError };
+    let syncError;
+    if (error) {
+        syncError = { type: ErrorType.UNNKOWN, error };
+    } else if (serverError) {
+        syncError = { type: ErrorType.SERVER, error: serverError };
     } else if (clientError) {
-        error = { type: ErrorType.CLIENT, error: clientError };
+        syncError = { type: ErrorType.CLIENT, error: clientError };
     }
 
-    return [resultEntities, loadingState, error, loadResult, { model, queryId }] as const;
+    const loadingState =
+        isClientLoading && isServerLoading
+            ? LoadingState.CLIENT_AND_SERVER
+            : isServerLoading
+            ? LoadingState.SERVER
+            : isClientLoading
+            ? LoadingState.CLIENT
+            : LoadingState.NOTHING;
+
+    return {
+        entities: entities ?? (emptyResult as InstanceType<ModelType>[]),
+        error: syncError,
+        loadingState,
+        queryData,
+        queryKey,
+    };
 }
+
+export type UseFindInternalReturnType<ModelType extends typeof SyncModel> = ReturnType<
+    typeof useFindInternal<ModelType>
+>;

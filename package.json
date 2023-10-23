@@ -2,11 +2,12 @@
   "name": "@ainias42/typeorm-sync-nextjs",
   "version": "0.2.4",
   "description": "synchronization between a server and client typeorm instance",
-  "main": "dist/index.js",
+  "main": "dist/typeormSync.js",
   "scripts": {
     "eslint": "eslint 'src/**/*.ts'",
-    "build": "node bin/build.js & tsc",
-    "update packages": "node bin/updateCopies.js"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "update packages": "npm run build && node bin/updateCopies.js"
   },
   "repository": {
     "type": "git",
@@ -25,7 +26,8 @@
     "react": ">=17.0.2",
     "react-dom": ">=17.0.2",
     "reflect-metadata": "^0.1.13",
-    "typeorm": ">=0.3.12"
+    "typeorm": ">=0.3.12",
+    "@tanstack/react-query": "^4.36.1"
   },
   "devDependencies": {
     "@types/node": "^18.15.3",
@@ -43,9 +45,8 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@ainias42/js-helper": ">=0.8.2",
-    "@ainias42/typeorm-sync": ">=0.2.4",
-    "@ainias42/use-reload": ">=0.0.3",
+    "@ainias42/js-helper": ">=0.8.10",
+    "@ainias42/typeorm-sync": ">=0.2.5",
     "zustand": "^4.3.6"
   }
 }

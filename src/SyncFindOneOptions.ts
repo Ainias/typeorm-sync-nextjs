@@ -1,3 +1,3 @@
-import { FindManyOptions, FindOneOptions } from 'typeorm';
+import { FindOneOptions } from 'typeorm';
 
 export type SyncFindOneOptions<Entity> = FindOneOptions<Entity> & { relations?: string[] };
