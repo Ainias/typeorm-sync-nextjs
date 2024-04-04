@@ -120,15 +120,27 @@ export function useFindInternal<ModelType extends typeof SyncModel>(
 
     const queryKey = useMemo(() => [Database.getModelIdFor(model), query] as TypeormSyncKey<ModelType>, [model, query]);
 
-    const queryData = useQuery({
-        queryKey,
-        queryFn: ({ queryKey: currentQueryKey }) => fetchQuery(currentQueryKey),
-        keepPreviousData: true,
-        initialDataUpdatedAt: initialLastQueryTimestamp,
-        initialData,
-        staleTime: outdatedAfter * 1000,
-        context: queryContext,
-    });
+    let queryData: {
+        data: TypeormSyncResult<InstanceType<ModelType>> | undefined;
+        error: null | Error;
+    } = {
+        data: initialData,
+        error: null,
+    };
+
+    if (Database.isClientDatabase()) {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        queryData = useQuery({
+            queryKey,
+            queryFn: ({ queryKey: currentQueryKey }) => fetchQuery(currentQueryKey),
+            keepPreviousData: true,
+            initialDataUpdatedAt: initialLastQueryTimestamp,
+            initialData,
+            staleTime: outdatedAfter * 1000,
+            cacheTime: outdatedAfter * 1000,
+            context: queryContext,
+        });
+    }
     const { data, error } = queryData;
 
     // Save result to indexedDB

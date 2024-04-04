@@ -4,23 +4,7 @@ const fs = require('fs');
 
 const packageName = require('../package.json').name;
 
-let pathsToProjects = [
-    // '/home/silas/Projekte/web/nextjsTest/poc-nextjs',
-    '/Users/sguenter/Projekte/Privat/dnd',
-    // '/home/silas/Projekte/web/smd-mail',
-    // "/home/silas/Projekte/Web/wordRotator",
-    // "/home/silas/Projekte/Web/stories",
-    // "/home/silas/Projekte/i9/mbb",
-    // "/home/silas/Projekte/web/smd-mail",
-    // "/home/silas/Projekte/web/hoffnungsfest",
-    // "/home/silas/Projekte/web/cordova-sites-user-management",
-    // "/home/silas/Projekte/Web/bible-lexicon",
-    // "/home/silas/Projekte/Web/wordRotator",
-    // "/var/www/pwa/wordRotator",
-
-    // "/home/silas/PhpstormProjects/cordova-sites-user-management",
-    // "/var/www/i9/mbb"
-];
+let pathsToProjects = ['/Users/sguenter/Projekte/Privat/dnd', '/Users/sguenter/Projekte/Privat/bat'];
 
 const deleteFolderRecursive = function (path) {
     if (fs.existsSync(path)) {

@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "@ainias42/js-helper": ">=0.8.10",
-    "@ainias42/typeorm-sync": ">=0.2.5",
+    "@ainias42/typeorm-sync": ">=0.2.8",
     "zustand": "^4.3.6"
   }
 }
